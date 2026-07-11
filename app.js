@@ -166,8 +166,8 @@ var MONITOR_DEFS = {
 
   function emergencyBindImportControls() {
     var pairs = [
-      { button: 'importStucksBtn', input: 'fileInput', label: 'STUCKS', handler: function (file) { return window.STUCKS_APP && window.STUCKS_APP.importStucksFile ? window.STUCKS_APP.importStucksFile(file) : null; } },
-      { button: 'importCepBtn', input: 'cepInput', label: 'CEP', handler: function (file) { return window.STUCKS_APP && window.STUCKS_APP.importCepFile ? window.STUCKS_APP.importCepFile(file) : null; } }
+      { button: 'importStucksBtn', input: 'fileInput', label: 'STUCKS', handler: function (file) { return importStucksFile(file); } },
+      { button: 'importCepBtn', input: 'cepInput', label: 'CEP', handler: function (file) { return importCepFile(file); } }
     ];
     pairs.forEach(function (item) {
       var button = document.getElementById(item.button);
@@ -191,10 +191,6 @@ var MONITOR_DEFS = {
         emergencyStatus('Arquivo selecionado: ' + file.name + '. Lendo...');
         try {
           var result = item.handler(file);
-          if (!result) {
-            emergencyStatus('O script principal ainda não iniciou. Atualize o site com Ctrl+F5 após subir app.js e vendor.');
-            return;
-          }
           Promise.resolve(result).catch(function (error) {
             emergencyStatus('Erro ao importar ' + item.label + ': ' + (error.message || error));
           });
@@ -2974,5 +2970,15 @@ var MONITOR_DEFS = {
       exportRows(rows, 'backup_tratativas_stucks.xlsx');
     }
   }
+
+  window.STUCKS_APP = {
+    version: 'cliques-importacao-fix-final-20260711',
+    importStucksFile: importStucksFile,
+    importCepFile: importCepFile,
+    refreshTreatmentsFromSheet: refreshTreatmentsFromSheet,
+    flushTreatmentSheetQueue: flushTreatmentSheetQueue,
+    setView: setView,
+    setStatus: setStatus
+  };
 
 }());
