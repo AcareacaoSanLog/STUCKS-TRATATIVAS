@@ -3528,3 +3528,9 @@ td.cogs-cell,
 }
 .supabase-sync-box b { color: var(--cyan); }
 @media (max-width: 1180px) { .supabase-sync-box { grid-template-columns: 1fr; } }
+
+.treatment-cloud-note {
+  margin: 10px 0 14px;
+  color: #ffcf00;
+  border-color: rgba(255, 207, 0, .34);
+}

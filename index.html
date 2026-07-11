@@ -357,10 +357,10 @@
           <div class="panel-head">
             <div>
               <h3>📝 Estoque de tratativas na nuvem</h3>
-              <p class="panel-description">Toda tratativa preenchida por BR fica salva no Supabase. Ao abrir em outro PC ou importar a base de amanhã, a tratativa volta automaticamente pela BR.</p>
+              <p class="panel-description">Toda tratativa preenchida por BR fica salva no Supabase. Em outro PC, clique em Importar tratativas da nuvem e depois importe a base STUCKS do dia para cruzar automaticamente pela BR.</p>
             </div>
             <div class="panel-actions">
-              <button class="text-button" id="loadSheetTreatmentsBtn" type="button">Puxar Supabase</button>
+              <button class="text-button" id="loadSheetTreatmentsBtn" type="button">Importar tratativas da nuvem</button>
               <button class="text-button" id="exportTreatmentsBtn" type="button">Baixar backup Excel</button>
               <button class="text-button danger" id="clearTreatmentsBtn" type="button">Limpar local</button>
             </div>
@@ -368,25 +368,22 @@
 
           <div class="sheet-sync-box supabase-sync-box">
             <div>
-              <strong>Supabase: estoque central das tratativas</strong>
-              <span>Configure uma vez a URL e a anon/public key do projeto. Depois, todo clique em Salvar sincroniza na tabela <b>stucks_tratativas</b>.</span>
+              <strong>Supabase conectado automaticamente</strong>
+              <span>O estoque central das tratativas já está configurado. As tratativas ficam na nuvem, mas a base STUCKS do dia ainda precisa ser importada no PC que estiver usando.</span>
             </div>
-            <label>
-              <span>SUPABASE_URL</span>
-              <input id="treatmentSheetUrlInput" type="text" placeholder="https://seu-projeto.supabase.co" autocomplete="off">
-            </label>
-            <label>
-              <span>SUPABASE_ANON_KEY / PUBLISHABLE KEY</span>
-              <input id="treatmentSupabaseKeyInput" type="password" placeholder="Cole a chave pública do Supabase" autocomplete="off">
-            </label>
+            <input id="treatmentSheetUrlInput" type="hidden" value="Supabase configurado automaticamente">
+            <input id="treatmentSupabaseKeyInput" type="hidden" value="Chave pública configurada automaticamente">
             <div class="sheet-sync-actions">
-              <button class="text-button" id="saveSheetConfigBtn" type="button">Salvar conexão</button>
-              <button class="text-button" id="syncSheetTreatmentsBtn" type="button">Sincronizar agora</button>
+              <button class="text-button" id="saveSheetConfigBtn" type="button">Testar conexão</button>
+              <button class="text-button" id="syncSheetTreatmentsBtn" type="button">Sincronizar tratativas</button>
             </div>
-            <small id="treatmentSheetStatus">Configure o Supabase para sincronizar tratativas entre PCs.</small>
+            <small id="treatmentSheetStatus">Supabase configurado automaticamente. Use Importar tratativas da nuvem para puxar o estoque salvo em outros PCs.</small>
           </div>
 
           <div class="cloud-status muted" id="treatmentStatus">Nenhuma tratativa salva ainda.</div>
+          <div class="cloud-status warn treatment-cloud-note">
+            As tratativas ficam na nuvem, mas a planilha STUCKS importada não fica salva automaticamente entre PCs. Em cada PC, importe a STUCKS do dia; o dashboard vai preencher as tratativas pela BR.
+          </div>
 
           <div class="damage-form treatment-form">
             <label>
@@ -412,7 +409,7 @@
           <div class="panel-head">
             <div>
               <h3>📋 Tratativas salvas por BR</h3>
-              <p class="panel-description">Essa lista é a sua base fixa de tratativas. Ela fica salva localmente por BR e é reaplicada automaticamente em novas importações.</p>
+              <p class="panel-description">Essa lista mostra as tratativas salvas/importadas da nuvem. Elas são reaplicadas automaticamente quando você importar uma STUCKS que tenha a mesma BR.</p>
             </div>
             <div class="panel-actions">
               <input class="search-input" id="treatmentSearchInput" type="search" placeholder="Buscar BR ou tratativa...">

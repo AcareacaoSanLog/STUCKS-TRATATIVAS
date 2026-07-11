@@ -88,7 +88,7 @@
   var SUPABASE_URL_KEY = 'torre-stucks-supabase-url-v2';
   var SUPABASE_ANON_KEY = 'torre-stucks-supabase-anon-key-v2';
   var SUPABASE_PENDING_KEY = 'torre-stucks-supabase-pending-tratativas-v2';
-  var supabaseConfig = { url: '', anonKey: '', table: 'stucks_tratativas' };
+  var supabaseConfig = { url: 'https://xknmhvfueczezhdnqkgq.supabase.co', anonKey: 'sb_publishable_xBwEOwAWLcopYi7akl-fVA_pOf7yFbJ', table: 'stucks_tratativas' };
   var CEP_IMPORT_STORAGE_KEY = 'torre-stucks-plus-cep-import-cache-v1';
   var IMPORT_COMPAT_VERSION = 'stucks-import-tn-status-dias-valor-cidade-entregador-v3';
   var damageShipmentSet = new Set();
@@ -155,7 +155,11 @@ var MONITOR_DEFS = {
     renderEmpty();
     renderCepReference();
     renderTreatmentsPage();
-    refreshTreatmentsFromSheet({ silent: true });
+    refreshTreatmentsFromSheet({ silent: true }).then(function (count) {
+      if (!state.rows.length && count) {
+        setStatus('Tratativas importadas da nuvem: ' + count + ' BR(s). Agora importe a base STUCKS do dia para cruzar e preencher automaticamente.', 'ok');
+      }
+    });
     window.addEventListener('beforeunload', function () { persistTreatmentMap(); persistCurrentBaseSilent(); flushTreatmentSheetQueue({ silent: true }); });
     if (!restoreLocalBackupOnStart()) setStatus('Dashboard vazio. Base CEP fixa carregada com ' + cepReference.length + ' registros. Importe a STUCKS para começar.', 'warn');
   }
@@ -507,258 +511,28 @@ var MONITOR_DEFS = {
   }
 
   function loadTreatmentSheetConfig() {
-    treatmentSheetSync.endpoint = '';
-    treatmentSheetSync.fileName = cleanCell(safeGetStorage(TREATMENT_SHEET_URL_KEY, ''));
-    if (els.treatmentSheetUrlInput) els.treatmentSheetUrlInput.value = treatmentSheetSync.fileName || 'Nenhum arquivo conectado ainda';
-    updateTreatmentSheetStatus('Tratativas salvas no navegador. No primeiro clique em Salvar, conecte o arquivo Estoque de tratativas.xlsx para ele ser atualizado automaticamente.', 'warn');
-    restoreTreatmentFileHandle();
+    supabaseConfig.url = 'https://xknmhvfueczezhdnqkgq.supabase.co';
+    supabaseConfig.anonKey = 'sb_publishable_xBwEOwAWLcopYi7akl-fVA_pOf7yFbJ';
+    safeSetStorage(SUPABASE_URL_KEY, supabaseConfig.url);
+    safeSetStorage(SUPABASE_ANON_KEY, supabaseConfig.anonKey);
+    loadSupabasePendingQueue();
+    if (els.treatmentSheetUrlInput) els.treatmentSheetUrlInput.value = 'Supabase configurado automaticamente';
+    if (els.treatmentSupabaseKeyInput) els.treatmentSupabaseKeyInput.value = 'Chave pública configurada automaticamente';
+    updateTreatmentSheetStatus('✅ Supabase configurado automaticamente. As tratativas serão salvas na nuvem pela BR.', 'ok');
   }
 
   async function saveTreatmentSheetConfig() {
-    await connectLocalTreatmentWorkbook({ manual: true });
-  }
-
-  function updateTreatmentSheetStatus(message, type) {
-    if (!els.treatmentSheetStatus) return;
-    els.treatmentSheetStatus.textContent = message;
-    els.treatmentSheetStatus.className = type ? type : '';
-  }
-
-  function treatmentSheetEndpoint(action) { return ''; }
-
-  async function treatmentSheetRequest(action, payload) {
-    throw new Error('Sincronização online desativada. Esta versão trabalha com estoque local/Excel.');
-  }
-
-  function buildTreatmentRecord(br, text) {
-    var row = findRowByShipment(br);
-    return {
-      shipment_id: normalizeTrace(br),
-      tratativa: cleanCell(text),
-      tracking_status: row ? cleanCell(row.tracking_status) : '',
-      cidade: row ? cleanCell(row.buyer_city || row.cidade_cep) : '',
-      bairro: row ? cleanCell(row.bairro) : '',
-      driver: row ? cleanCell(row.driver_name || row.driver_id) : '',
-      ageing_last_status: row ? cleanCell(row.ageing_last_status) : '',
-      avaria: row ? cleanCell(row.avaria || 'Não') : '',
-      atualizado_em: new Date().toISOString()
-    };
-  }
-
-  function treatmentRowsForWorkbook() {
-    return treatmentRowsForTable().map(function (row) {
-      return {
-        shipment_id: row.shipment_id,
-        tratativa: row.tratativa,
-        tracking_status: row.tracking_status || '',
-        cidade: row.cidade || '',
-        bairro: row.bairro || '',
-        driver: row.driver || '',
-        ageing_last_status: row.ageing_last_status || '',
-        avaria: row.avaria || '',
-        atualizado_em: new Date().toISOString()
-      };
-    });
-  }
-
-  function buildTreatmentsWorkbookBlob() {
-    var rows = treatmentRowsForWorkbook();
-    if (!window.XLSX || !XLSX.utils) throw new Error('Biblioteca XLSX não carregada.');
-    if (!rows.length) rows = [{ shipment_id: '', tratativa: '', tracking_status: '', cidade: '', bairro: '', driver: '', ageing_last_status: '', avaria: '', atualizado_em: '' }];
-    var ws = XLSX.utils.json_to_sheet(rows, { header: ['shipment_id', 'tratativa', 'tracking_status', 'cidade', 'bairro', 'driver', 'ageing_last_status', 'avaria', 'atualizado_em'] });
-    ws['!cols'] = [
-      { wch: 22 }, { wch: 55 }, { wch: 24 }, { wch: 24 }, { wch: 24 }, { wch: 26 }, { wch: 20 }, { wch: 12 }, { wch: 24 }
-    ];
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'TRATATIVAS');
-    var array = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    return new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  }
-
-  function downloadTreatmentWorkbook() {
-    var blob = buildTreatmentsWorkbookBlob();
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'Estoque de tratativas.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-  }
-
-  function openTreatmentHandleDB() {
-    return new Promise(function (resolve, reject) {
-      if (!window.indexedDB) return resolve(null);
-      var request = indexedDB.open(TREATMENT_HANDLE_DB, 1);
-      request.onupgradeneeded = function () {
-        var db = request.result;
-        if (!db.objectStoreNames.contains(TREATMENT_HANDLE_STORE)) db.createObjectStore(TREATMENT_HANDLE_STORE);
-      };
-      request.onsuccess = function () { resolve(request.result); };
-      request.onerror = function () { reject(request.error || new Error('Erro ao abrir IndexedDB.')); };
-    });
-  }
-
-  async function saveTreatmentFileHandle(handle) {
+    supabaseConfig.url = supabaseConfig.url || 'https://xknmhvfueczezhdnqkgq.supabase.co';
+    supabaseConfig.anonKey = supabaseConfig.anonKey || 'sb_publishable_xBwEOwAWLcopYi7akl-fVA_pOf7yFbJ';
+    updateTreatmentSheetStatus('Testando conexão fixa com Supabase...', 'warn');
     try {
-      var db = await openTreatmentHandleDB();
-      if (!db) return;
-      await new Promise(function (resolve, reject) {
-        var tx = db.transaction(TREATMENT_HANDLE_STORE, 'readwrite');
-        tx.objectStore(TREATMENT_HANDLE_STORE).put(handle, TREATMENT_HANDLE_KEY);
-        tx.oncomplete = resolve;
-        tx.onerror = function () { reject(tx.error || new Error('Erro ao salvar permissão do arquivo.')); };
-      });
-      db.close();
+      await refreshTreatmentsFromSheet({ silent: true });
+      await flushTreatmentSheetQueue({ forceAll: true, silent: true });
+      updateTreatmentSheetStatus('✅ Supabase conectado. Tratativas sincronizadas e disponíveis em outros PCs.', 'ok');
+      setStatus('Supabase conectado como estoque central das tratativas.', 'ok');
     } catch (error) {
-      console.warn('Não foi possível guardar o arquivo conectado para a próxima abertura:', error);
+      updateTreatmentSheetStatus('Não consegui conectar ao Supabase. Confira tabela, RLS e se o GitHub Pages está atualizado. Erro: ' + (error.message || error), 'error');
     }
-  }
-
-  async function loadTreatmentFileHandle() {
-    try {
-      var db = await openTreatmentHandleDB();
-      if (!db) return null;
-      var handle = await new Promise(function (resolve, reject) {
-        var tx = db.transaction(TREATMENT_HANDLE_STORE, 'readonly');
-        var request = tx.objectStore(TREATMENT_HANDLE_STORE).get(TREATMENT_HANDLE_KEY);
-        request.onsuccess = function () { resolve(request.result || null); };
-        request.onerror = function () { reject(request.error || new Error('Erro ao carregar arquivo conectado.')); };
-      });
-      db.close();
-      return handle || null;
-    } catch (error) {
-      console.warn('Não foi possível carregar o arquivo conectado:', error);
-      return null;
-    }
-  }
-
-  async function restoreTreatmentFileHandle() {
-    if (!window.showSaveFilePicker || !window.indexedDB) return;
-    var handle = await loadTreatmentFileHandle();
-    if (!handle) return;
-    treatmentSheetSync.fileHandle = handle;
-    treatmentSheetSync.fileName = handle.name || 'Estoque de tratativas.xlsx';
-    safeSetStorage(TREATMENT_SHEET_URL_KEY, treatmentSheetSync.fileName);
-    if (els.treatmentSheetUrlInput) els.treatmentSheetUrlInput.value = treatmentSheetSync.fileName;
-    var permission = 'prompt';
-    try {
-      permission = await handle.queryPermission({ mode: 'readwrite' });
-    } catch (error) {
-      permission = 'prompt';
-    }
-    if (permission === 'granted') {
-      updateTreatmentSheetStatus('Arquivo conectado: ' + treatmentSheetSync.fileName + '. Toda tratativa salva atualizará este Excel automaticamente.', 'ok');
-      await loadTreatmentsFromConnectedFile({ silent: true });
-    } else {
-      updateTreatmentSheetStatus('Arquivo já conectado, mas o navegador vai pedir permissão no próximo salvamento: ' + treatmentSheetSync.fileName + '.', 'warn');
-    }
-  }
-
-  async function ensureTreatmentFilePermission(handle) {
-    if (!handle) return false;
-    try {
-      var options = { mode: 'readwrite' };
-      if ((await handle.queryPermission(options)) === 'granted') return true;
-      return (await handle.requestPermission(options)) === 'granted';
-    } catch (error) {
-      console.warn('Permissão do arquivo negada ou indisponível:', error);
-      return false;
-    }
-  }
-
-  async function loadTreatmentsFromConnectedFile(options) {
-    options = options || {};
-    if (!treatmentSheetSync.fileHandle || !treatmentSheetSync.fileHandle.getFile) return 0;
-    try {
-      var file = await treatmentSheetSync.fileHandle.getFile();
-      if (!file || !file.size) return 0;
-      var rows = await parseAnyFileRows(file, 'treatments');
-      var count = applyTreatmentsImport(rows, { skipSheetSync: true });
-      persistTreatmentMapAndBase();
-      if (!options.silent) updateTreatmentSheetStatus('Estoque Excel carregado: ' + count + ' tratativa(s) reaplicada(s).', 'ok');
-      return count;
-    } catch (error) {
-      if (!options.silent) updateTreatmentSheetStatus('Não consegui ler o Excel conectado. Ele ainda será atualizado ao salvar. Erro: ' + (error.message || error), 'warn');
-      return 0;
-    }
-  }
-
-  async function connectLocalTreatmentWorkbook(options) {
-    options = options || {};
-    try {
-      if (!window.XLSX) throw new Error('Biblioteca XLSX não carregada.');
-      var handle = null;
-
-      if (window.showOpenFilePicker) {
-        var handles = await window.showOpenFilePicker({
-          multiple: false,
-          types: [{ description: 'Planilha Excel', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }]
-        });
-        handle = handles && handles[0];
-      } else if (window.showSaveFilePicker) {
-        handle = await window.showSaveFilePicker({
-          suggestedName: 'Estoque de tratativas.xlsx',
-          types: [{ description: 'Planilha Excel', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }]
-        });
-      } else {
-        downloadTreatmentWorkbook();
-        updateTreatmentSheetStatus('Seu navegador não permite atualizar um Excel existente diretamente. Baixei o Estoque de tratativas.xlsx atualizado.', 'warn');
-        return false;
-      }
-
-      if (!handle) return false;
-      treatmentSheetSync.fileHandle = handle;
-      treatmentSheetSync.fileName = handle.name || 'Estoque de tratativas.xlsx';
-      safeSetStorage(TREATMENT_SHEET_URL_KEY, treatmentSheetSync.fileName);
-      await saveTreatmentFileHandle(handle);
-      if (els.treatmentSheetUrlInput) els.treatmentSheetUrlInput.value = treatmentSheetSync.fileName;
-
-      // Lê a planilha existente primeiro para não sobrescrever tratativas antigas.
-      await loadTreatmentsFromConnectedFile({ silent: true });
-      // Grava a versão consolidada: o que já existia na planilha + o que foi salvo no dashboard.
-      await saveTreatmentsToConnectedFile({ silent: true });
-      updateTreatmentSheetStatus('Planilha conectada: ' + treatmentSheetSync.fileName + '. Agora todo clique em Salvar grava direto nessa planilha.', 'ok');
-      return true;
-    } catch (error) {
-      if (error && error.name === 'AbortError') {
-        updateTreatmentSheetStatus('Seleção da planilha cancelada. A tratativa ficou salva no navegador; para gravar no Excel, selecione a planilha Estoque de tratativas.xlsx.', 'warn');
-        return false;
-      }
-      console.error(error);
-      updateTreatmentSheetStatus('Não consegui conectar a planilha. As tratativas continuam salvas no navegador. Erro: ' + (error.message || error), 'error');
-      return false;
-    }
-  }
-
-  async function ensureTreatmentWorkbookForSave(options) {
-    options = options || {};
-    if (treatmentSheetSync.fileHandle) {
-      var allowed = await ensureTreatmentFilePermission(treatmentSheetSync.fileHandle);
-      if (allowed) return true;
-      updateTreatmentSheetStatus('O navegador negou permissão para atualizar o Excel conectado. Conecte novamente o arquivo.', 'error');
-      treatmentSheetSync.fileHandle = null;
-    }
-    if (options.promptIfMissing) return await connectLocalTreatmentWorkbook({ manual: false });
-    return false;
-  }
-
-  async function saveTreatmentsToConnectedFile(options) {
-    options = options || {};
-    if (!treatmentSheetSync.fileHandle) {
-      if (!options.silent) downloadTreatmentWorkbook();
-      return false;
-    }
-    var allowed = await ensureTreatmentFilePermission(treatmentSheetSync.fileHandle);
-    if (!allowed) throw new Error('Permissão negada para escrever no arquivo Excel.');
-    var blob = buildTreatmentsWorkbookBlob();
-    var writable = await treatmentSheetSync.fileHandle.createWritable();
-    await writable.write(blob);
-    await writable.close();
-    treatmentSheetSync.lastSavedAt = new Date().toISOString();
-    if (!options.silent) updateTreatmentSheetStatus('Estoque de tratativas.xlsx atualizado automaticamente.', 'ok');
-    return true;
   }
 
   function queueTreatmentSheetSync(br, text) {
@@ -2963,7 +2737,7 @@ var MONITOR_DEFS = {
       return 0;
     }
     try {
-      if (!options.silent) updateTreatmentSheetStatus('Buscando tratativas no Supabase...', 'warn');
+      if (!options.silent) updateTreatmentSheetStatus('Importando tratativas da nuvem...', 'warn');
       var rows = await supabaseRequest(supabaseConfig.table + '?select=shipment_id,tratativa,tracking_status,cidade,bairro,driver,ageing_last_status,avaria,updated_at&order=updated_at.desc&limit=10000', {
         method: 'GET'
       });
@@ -2979,11 +2753,19 @@ var MONITOR_DEFS = {
       persistTreatmentMapAndBase();
       applyAndRender();
       treatmentSheetSync.lastLoadedAt = new Date().toISOString();
-      updateTreatmentSheetStatus('✅ Tratativas carregadas do Supabase: ' + imported + ' BR(s). Elas serão reaplicadas automaticamente pela BR.', 'ok');
+
+      if (state.rows.length) {
+        updateTreatmentSheetStatus('✅ Tratativas importadas da nuvem: ' + imported + ' BR(s). Elas foram cruzadas com a base STUCKS atual pela BR.', 'ok');
+        setStatus('Tratativas importadas da nuvem e aplicadas na base atual.', 'ok');
+      } else {
+        updateTreatmentSheetStatus('✅ Tratativas importadas da nuvem: ' + imported + ' BR(s). Importe a base STUCKS do dia para o dashboard cruzar pela BR.', 'ok');
+        if (!options.silent) setStatus('Tratativas importadas da nuvem. O dashboard fica vazio até você importar a base STUCKS do dia.', 'warn');
+      }
+
       if (treatmentSheetSync.pending.size) flushTreatmentSheetQueue({ silent: true });
       return imported;
     } catch (error) {
-      if (!options.silent) updateTreatmentSheetStatus('Não consegui puxar tratativas do Supabase. Usando estoque local deste navegador. Erro: ' + (error.message || error), 'error');
+      if (!options.silent) updateTreatmentSheetStatus('Não consegui importar tratativas do Supabase. Usando estoque local deste navegador. Erro: ' + (error.message || error), 'error');
       return 0;
     }
   }
