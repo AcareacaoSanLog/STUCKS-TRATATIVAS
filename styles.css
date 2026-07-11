@@ -605,3 +605,51 @@ table td:last-child {
   color: var(--cyan);
   font-size: 13px;
 }
+
+/* === CORREÇÃO FINAL DE LAYOUT: sidebar + conteúdo sem quebra === */
+:root{--sidebar-w:248px}
+html,body{width:100%;max-width:100%;min-height:100%;overflow-x:hidden!important;background:#02080f}
+.app{width:100%;max-width:100%;min-height:100vh;display:grid;grid-template-columns:var(--sidebar-w) minmax(0,1fr);align-items:stretch;overflow-x:hidden}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);max-width:var(--sidebar-w);height:100vh;min-height:100vh;position:sticky;top:0;overflow-y:auto;overflow-x:hidden!important;scrollbar-gutter:stable;border-right:1px solid #123856}
+.main{width:100%;min-width:0;max-width:100%;overflow-x:hidden!important;overflow-y:visible;border-left:0}
+.topbar,.actions,.status,.grid,.panel,.card,.old-filters,.quick-row,.old-kpi-row,.old-main-grid,.old-health-card,.table-wrap,.modal,.modal-body,.form-row,.nav,.nav-group,.nav-submenu,.side-status,#content{min-width:0!important;max-width:100%!important}
+.sidebar *,.nav button,.nav-heading,.nav-submenu button,.side-status{max-width:100%;min-width:0}
+.nav button{overflow:hidden}
+.nav button,.nav button span,.nav-heading,.nav-submenu button{white-space:nowrap;text-overflow:ellipsis}
+.nav b{flex:0 0 auto}
+.old-filters{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}
+.old-kpi-row{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr))}
+.old-main-grid{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.old-health-card{width:100%;min-width:0;grid-template-columns:96px minmax(0,1fr) auto}
+.old-health-card>*,.panel>*,.card>*{min-width:0}
+.table-wrap{width:100%;overflow-x:auto!important;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.table-wrap table{width:100%;min-width:980px}
+th,td{overflow-wrap:anywhere}
+table th:first-child,table td:first-child,table td:first-child b,table td:first-child strong{white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important}
+input,select,textarea,button{max-width:100%}
+.actions{flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:1250px){
+  :root{--sidebar-w:220px}
+  .app{grid-template-columns:var(--sidebar-w) minmax(0,1fr)}
+  .sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);max-width:var(--sidebar-w)}
+  .old-main-grid{grid-template-columns:1fr}
+  .old-health-card{grid-template-columns:84px minmax(0,1fr)}
+  .old-health-card .btn,.old-health-card button{grid-column:1/-1;justify-self:stretch}
+}
+@media(max-width:900px){
+  .app{display:block;width:100%}
+  .sidebar{position:relative;width:100%;min-width:0;max-width:100%;height:auto;min-height:0;overflow:visible;border-right:0;border-bottom:1px solid #123856}
+  .main{width:100%}
+  .topbar{display:grid;grid-template-columns:1fr}
+  .actions{justify-content:flex-start}
+  .old-filters,.old-main-grid,.form-row{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .main{padding:10px}
+  .actions{display:grid;grid-template-columns:1fr}
+  .actions button,.actions .btn,.btn{width:100%;justify-content:center}
+  .old-kpi-row{grid-template-columns:1fr}
+  .old-health-card{grid-template-columns:1fr}
+  .ring{justify-self:center}
+  .table-wrap table{min-width:860px}
+}
