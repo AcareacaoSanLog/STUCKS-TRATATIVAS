@@ -560,3 +560,48 @@ table td:last-child {
 .textarea:focus {
   outline: 2px solid rgba(0, 230, 255, .35);
 }
+
+
+/* Status: quantidade por dias parados */
+.status-days-table th:nth-child(1),
+.status-days-table td:nth-child(1) {
+  min-width: 220px;
+  white-space: nowrap;
+}
+
+.status-days-table th:nth-child(2),
+.status-days-table td:nth-child(2) {
+  width: 120px;
+  text-align: center;
+}
+
+.status-days-table th:nth-child(3),
+.status-days-table td:nth-child(3) {
+  min-width: 360px;
+}
+
+.days-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.days-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(0, 230, 255, .28);
+  background: rgba(0, 230, 255, .07);
+  color: #dffaff;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.days-chip b {
+  color: var(--cyan);
+  font-size: 13px;
+}

@@ -114,7 +114,7 @@ function treatmentInputDisplay(r){const t=clean(r&&r.tratativa); return t || 'Se
 function normalizeTreatmentSave(v){const t=clean(v); return normSearch(t)==='sem tratativa' ? '' : t;}
 
 function setView(view){state.view=view; if(view.startsWith('monitor-'))state.monitor.type=view.replace('monitor-',''); render();}
-function render(){renderBadges(); renderNav(); const v=state.view; if(v==='dashboard')renderDashboard(); else if(v.startsWith('monitor-'))renderMonitor(); else if(v==='base')renderBase(); else if(v==='damages')renderDamages(); else if(v==='treatments')renderTreatments(); else if(v==='cities')renderRanking('city','Cidades com mais stucks'); else if(v==='drivers')renderRanking('driver','Drivers'); else if(v==='status')renderRanking('tracking_status','Status'); else if(v==='ceps')renderCeps(); else if(v==='history')renderHistory();}
+function render(){renderBadges(); renderNav(); const v=state.view; if(v==='dashboard')renderDashboard(); else if(v.startsWith('monitor-'))renderMonitor(); else if(v==='base')renderBase(); else if(v==='damages')renderDamages(); else if(v==='treatments')renderTreatments(); else if(v==='cities')renderRanking('city','Cidades com mais stucks'); else if(v==='drivers')renderRanking('driver','Drivers'); else if(v==='status')renderStatus(); else if(v==='ceps')renderCeps(); else if(v==='history')renderHistory();}
 function renderNav(){
  document.querySelectorAll('#nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===state.view));
  const monitorActive=String(state.view||'').startsWith('monitor-');
@@ -274,6 +274,50 @@ function renderTreatments(){el.title.textContent='📝 Tratativas'; const rows=t
 async function saveOneTreatment(){const br=normalizeTrace(document.getElementById('oneBr')?.value), t=clean(document.getElementById('oneTrat')?.value); if(!br||!t)return setStatus('Digite a BR e a tratativa.','warn'); state.treatments.set(br,t); const row=state.rows.find(r=>r.shipment_id===br); if(row){row.tratativa=t;enrich(row);} saveLocal(true); render(); await upsertTreatments([buildTreatmentRecord(br,t)]); setStatus('Tratativa salva na nuvem para '+br+'.','ok');}
 function removeTreatment(br){br=normalizeTrace(br); state.treatments.delete(br); const r=state.rows.find(x=>x.shipment_id===br); if(r){r.tratativa='';enrich(r);} saveLocal(true); render(); setStatus('Tratativa removida localmente.','warn');}
 function treatmentRows(){return [...state.treatments.entries()].map(([br,t])=>{const r=state.rows.find(x=>x.shipment_id===br); return {shipment_id:br,tratativa:t,found:!!r,status:r?.tracking_status,city:r?.city};}).sort((a,b)=>a.shipment_id.localeCompare(b.shipment_id));}
+function renderStatus(){
+ el.title.textContent='📊 Status';
+ const grouped = new Map();
+
+ state.rows.forEach(r => {
+  const status = clean(r.tracking_status) || 'Sem status';
+  if(!grouped.has(status)) grouped.set(status, { total:0, days:new Map() });
+  const item = grouped.get(status);
+  item.total++;
+  const day = Number.isFinite(Number(r.ageing_num)) && r.ageing_num !== null ? Number(r.ageing_num) : null;
+  const key = day === null ? 'Sem dias' : String(day);
+  item.days.set(key, (item.days.get(key)||0)+1);
+ });
+
+ const rows = [...grouped.entries()].sort((a,b)=>b[1].total-a[1].total || String(a[0]).localeCompare(String(b[0]),'pt-BR'));
+
+ const body = rows.length ? rows.map(([status,data]) => {
+  const days = [...data.days.entries()].sort((a,b)=>{
+   if(a[0]==='Sem dias') return 1;
+   if(b[0]==='Sem dias') return -1;
+   return Number(b[0])-Number(a[0]);
+  }).map(([day,count]) => {
+   const label = day === 'Sem dias' ? 'sem dias informado' : (Number(day) === 1 ? '1 dia' : day + ' dias');
+   return `<span class="days-chip"><b>${count}</b> BR${count===1?'':'s'} com ${esc(label)}</span>`;
+  }).join('');
+  return `<tr>
+   <td><strong>${esc(status)}</strong></td>
+   <td><strong>${data.total}</strong></td>
+   <td><div class="days-summary">${days || '<span class="days-chip">Sem dias informado</span>'}</div></td>
+  </tr>`;
+ }).join('') : '<tr><td colspan="3">Nenhum status encontrado.</td></tr>';
+
+ el.content.innerHTML = `<div class="panel">
+  <h3>📊 Status por dias parados</h3>
+  <p class="tabs-note">Mostra a quantidade de BRs em cada status separada pelo dia parado exato.</p>
+  <div class="table-wrap">
+   <table class="status-days-table">
+    <thead><tr><th>Status</th><th>Qtd total</th><th>Quantidade por dias parados</th></tr></thead>
+    <tbody>${body}</tbody>
+   </table>
+  </div>
+ </div>`;
+}
+
 function renderRanking(field,title){el.title.textContent=title; const rows=groupCount(state.rows,field); el.content.innerHTML=`<div class="panel"><h3>${esc(title)}</h3><div class="table-wrap">${simpleTable(rows,[title,'Qtd'])}</div></div>`;}
 function renderCeps(){el.title.textContent='🗺️ CEPs'; const rows=[...state.cepMap.entries()].map(([br,c])=>[br,c.cep||'-',c.cidade||'-',c.bairro||'-',c.status||'-']); el.content.innerHTML=`<div class="panel"><h3>CEPs importados</h3><div class="table-wrap">${simpleTable(rows,['BR','CEP','Cidade','Bairro','Status'])}</div></div>`;}
 function renderHistory(){el.title.textContent='🕓 Histórico'; el.content.innerHTML=`<div class="panel"><h3>Histórico de importações</h3><div class="table-wrap">${simpleTable(state.history.map(h=>[formatDate(h.at),h.file,h.count]),['Data','Arquivo','Qtd'])}</div></div>`;}
