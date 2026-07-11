@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard Stucks</title>
-  <link rel="stylesheet" href="styles.css?v=clean-functional-20260711-1">
+  <link rel="stylesheet" href="styles.css?v=layout-antigo-funcional-20260711">
 </head>
 <body>
   <div class="app">
@@ -16,10 +16,15 @@
       </div>
       <nav id="nav" class="nav">
         <button data-view="dashboard" class="active">▦ 🏠 Dashboard</button>
-        <button data-view="monitor-received">📥 Received</button>
-        <button data-view="monitor-assigned">🏷️ Assigned</button>
-        <button data-view="monitor-soclh">🚚 SOC LH</button>
-        <button data-view="monitor-onhold">⛔ OnHold</button>
+        <div class="nav-group">
+          <button class="nav-heading" type="button" data-action="toggle-monitor">📦 Monitoramento <span>⌄</span></button>
+          <div class="nav-submenu open" id="monitorSubmenu">
+            <button data-view="monitor-received">📥 Received</button>
+            <button data-view="monitor-assigned">🏷️ Assigned</button>
+            <button data-view="monitor-soclh">🚚 SOC LH</button>
+            <button data-view="monitor-onhold">⛔ OnHold</button>
+          </div>
+        </div>
         <button data-view="base">▤ 📦 Base Stucks <b id="baseBadge">0</b></button>
         <button data-view="damages">⚠️ Avarias <b id="damageBadge">0</b></button>
         <button data-view="treatments">📝 Tratativas <b id="treatmentBadge">0</b></button>
@@ -54,6 +59,6 @@
 
   <div id="modalRoot"></div>
   <script src="vendor/xlsx.full.min.js"></script>
-  <script src="app.js?v=clean-functional-20260711-1"></script>
+  <script src="app.js?v=layout-antigo-funcional-20260711"></script>
 </body>
 </html>
