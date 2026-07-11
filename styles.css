@@ -503,3 +503,60 @@ td .textarea,
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   CORREÇÃO FINAL: BR SEM QUEBRA + TRATATIVA SEM "NULL"
+   ========================================================= */
+
+/* Primeira coluna da tabela sempre é BR: não pode quebrar em duas linhas */
+table th:first-child,
+table td:first-child {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  min-width: 150px;
+  max-width: none;
+}
+
+/* Deixa códigos/rastreios legíveis e sem quebra */
+td:first-child b,
+td:first-child strong {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  display: inline-block;
+}
+
+/* A coluna de tratativa pode crescer, mas sem estourar a página */
+table th:last-child,
+table td:last-child {
+  min-width: 220px;
+}
+
+/* Textarea de tratativa sem aparecer null e com largura controlada */
+.textarea {
+  min-width: 220px;
+  width: 100%;
+  max-width: 100%;
+  resize: vertical;
+}
+
+/* Em telas menores, a tabela rola por dentro e não quebra a página */
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table-wrap table {
+  min-width: 980px;
+}
+
+
+/* Campo de tratativa vazio exibido como Sem tratativa */
+.textarea {
+  color: #ffffff;
+}
+
+.textarea:focus {
+  outline: 2px solid rgba(0, 230, 255, .35);
+}
