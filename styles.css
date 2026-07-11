@@ -3614,3 +3614,19 @@ button.import-button {
 button.import-button:hover {
   filter: brightness(1.08);
 }
+
+/* Correção crítica de cliques */
+.app-shell, .main, .sidebar, .top-actions, .nav, button, label, input, select, textarea {
+  pointer-events: auto;
+}
+
+button, .nav-button, .import-button {
+  position: relative;
+  z-index: 2;
+}
+
+.cloud-status.error {
+  color: #ff8c8c;
+  border-color: rgba(255, 92, 92, .5);
+  background: rgba(255, 92, 92, .08);
+}

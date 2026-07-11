@@ -140,7 +140,70 @@ var MONITOR_DEFS = {
 
   var els = {};
 
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', safeInit);
+
+  function safeInit() {
+    try {
+      emergencyBindImportControls();
+      init();
+      window.STUCKS_BOOT_OK = true;
+    } catch (error) {
+      console.error('Falha crítica ao iniciar dashboard:', error);
+      emergencyBindImportControls();
+      emergencyStatus('Erro crítico ao iniciar o dashboard: ' + (error.message || error) + '. Atualize index.html, app.js, styles.css e vendor no GitHub, depois use Ctrl+F5.');
+    }
+  }
+
+  function emergencyStatus(message) {
+    var status = document.getElementById('appStatus');
+    if (status) {
+      status.textContent = message;
+      status.className = 'cloud-status error';
+    } else {
+      alert(message);
+    }
+  }
+
+  function emergencyBindImportControls() {
+    var pairs = [
+      { button: 'importStucksBtn', input: 'fileInput', label: 'STUCKS', handler: function (file) { return window.STUCKS_APP && window.STUCKS_APP.importStucksFile ? window.STUCKS_APP.importStucksFile(file) : null; } },
+      { button: 'importCepBtn', input: 'cepInput', label: 'CEP', handler: function (file) { return window.STUCKS_APP && window.STUCKS_APP.importCepFile ? window.STUCKS_APP.importCepFile(file) : null; } }
+    ];
+    pairs.forEach(function (item) {
+      var button = document.getElementById(item.button);
+      var input = document.getElementById(item.input);
+      if (!button || !input || button.dataset.emergencyBound === '1') return;
+      button.dataset.emergencyBound = '1';
+      button.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        try {
+          input.value = '';
+          input.click();
+          emergencyStatus('Selecione o arquivo de ' + item.label + ' para importar.');
+        } catch (error) {
+          emergencyStatus('O navegador bloqueou a seleção de arquivo: ' + (error.message || error));
+        }
+      }, true);
+      input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) return emergencyStatus('Nenhum arquivo selecionado para ' + item.label + '.');
+        emergencyStatus('Arquivo selecionado: ' + file.name + '. Lendo...');
+        try {
+          var result = item.handler(file);
+          if (!result) {
+            emergencyStatus('O script principal ainda não iniciou. Atualize o site com Ctrl+F5 após subir app.js e vendor.');
+            return;
+          }
+          Promise.resolve(result).catch(function (error) {
+            emergencyStatus('Erro ao importar ' + item.label + ': ' + (error.message || error));
+          });
+        } catch (error) {
+          emergencyStatus('Erro ao iniciar importação de ' + item.label + ': ' + (error.message || error));
+        }
+      }, true);
+    });
+  }
 
   function init() {
     rebuildCepIndex();
@@ -306,16 +369,16 @@ var MONITOR_DEFS = {
     bindDropZone(els.dropZone || els.importStucksBtn, importStucksFile);
     bindDropZone(els.cepDropZone || els.importCepBtn, importCepFile);
 
-    els.statusFilter.addEventListener('change', function () { state.filters.status = els.statusFilter.value; applyAndRender(); });
-    els.cityFilter.addEventListener('change', function () { state.filters.city = els.cityFilter.value; applyAndRender(); });
-    els.driverFilter.addEventListener('change', function () { state.filters.driver = els.driverFilter.value; applyAndRender(); });
-    els.ageingFilter.addEventListener('change', function () { state.filters.ageing = els.ageingFilter.value; applyAndRender(); });
-    els.priorityFilter.addEventListener('change', function () { state.filters.priority = els.priorityFilter.value; applyAndRender(); });
-    els.avariaFilter.addEventListener('change', function () { state.filters.avaria = els.avariaFilter.value; applyAndRender(); });
-    els.cepFilter.addEventListener('change', function () { state.filters.cep = els.cepFilter.value; applyAndRender(); });
-    els.searchInput.addEventListener('input', debounce(function () { state.filters.search = els.searchInput.value.trim(); applyAndRender(); }, 120));
-    els.cepSearchInput.addEventListener('input', debounce(function () { state.filters.cepSearch = els.cepSearchInput.value.trim(); renderCepReference(); }, 120));
-    els.cepCityFilter.addEventListener('change', function () { state.filters.cepCity = els.cepCityFilter.value; renderCepReference(); });
+    if (els.statusFilter) els.statusFilter.addEventListener('change', function () { state.filters.status = els.statusFilter.value; applyAndRender(); });
+    if (els.cityFilter) els.cityFilter.addEventListener('change', function () { state.filters.city = els.cityFilter.value; applyAndRender(); });
+    if (els.driverFilter) els.driverFilter.addEventListener('change', function () { state.filters.driver = els.driverFilter.value; applyAndRender(); });
+    if (els.ageingFilter) els.ageingFilter.addEventListener('change', function () { state.filters.ageing = els.ageingFilter.value; applyAndRender(); });
+    if (els.priorityFilter) els.priorityFilter.addEventListener('change', function () { state.filters.priority = els.priorityFilter.value; applyAndRender(); });
+    if (els.avariaFilter) els.avariaFilter.addEventListener('change', function () { state.filters.avaria = els.avariaFilter.value; applyAndRender(); });
+    if (els.cepFilter) els.cepFilter.addEventListener('change', function () { state.filters.cep = els.cepFilter.value; applyAndRender(); });
+    if (els.searchInput) els.searchInput.addEventListener('input', debounce(function () { state.filters.search = els.searchInput.value.trim(); applyAndRender(); }, 120));
+    if (els.cepSearchInput) els.cepSearchInput.addEventListener('input', debounce(function () { state.filters.cepSearch = els.cepSearchInput.value.trim(); renderCepReference(); }, 120));
+    if (els.cepCityFilter) els.cepCityFilter.addEventListener('change', function () { state.filters.cepCity = els.cepCityFilter.value; renderCepReference(); });
     if (els.monitorCityFilter) els.monitorCityFilter.addEventListener('change', function () { state.monitor.city = els.monitorCityFilter.value; populateMonitorFilters(); renderMonitoring(); });
     if (els.monitorNeighborhoodFilter) els.monitorNeighborhoodFilter.addEventListener('change', function () { state.monitor.neighborhood = els.monitorNeighborhoodFilter.value; renderMonitoring(); });
     if (els.monitorAgeingFilter) els.monitorAgeingFilter.addEventListener('change', function () { state.monitor.ageing = els.monitorAgeingFilter.value; renderMonitoring(); });
@@ -378,15 +441,15 @@ var MONITOR_DEFS = {
       button.addEventListener('click', function () { quickFilter(button.dataset.quickFilter); });
     });
 
-    document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
-    document.getElementById('exportBtn').addEventListener('click', function () { exportRows(state.filtered, 'stucks_filtrados.xlsx'); });
-    document.getElementById('exportBaseBtn').addEventListener('click', function () { exportRows(state.filtered, 'base_stucks_filtrada.xlsx'); });
-    document.getElementById('exportCitiesBtn').addEventListener('click', function () { exportRows(groupForExport('buyer_city'), 'stucks_por_cidade.xlsx'); });
-    document.getElementById('exportDriversBtn').addEventListener('click', function () { exportRows(groupForExport('driver_name', 'driver_id'), 'stucks_por_driver.xlsx'); });
-    document.getElementById('exportStatusBtn').addEventListener('click', function () { exportRows(groupForExport('tracking_status'), 'stucks_por_status.xlsx'); });
-    document.getElementById('copySummaryBtn').addEventListener('click', copySummary);
-    document.getElementById('saveBtn').addEventListener('click', saveLocal);
-    document.getElementById('loadBtn').addEventListener('click', loadLocal);
+    var resetFiltersButton = document.getElementById('resetFiltersBtn'); if (resetFiltersButton) resetFiltersButton.addEventListener('click', resetFilters);
+    var exportButton = document.getElementById('exportBtn'); if (exportButton) exportButton.addEventListener('click', function () { exportRows(state.filtered, 'stucks_filtrados.xlsx'); });
+    var exportBaseButton = document.getElementById('exportBaseBtn'); if (exportBaseButton) exportBaseButton.addEventListener('click', function () { exportRows(state.filtered, 'base_stucks_filtrada.xlsx'); });
+    var exportCitiesButton = document.getElementById('exportCitiesBtn'); if (exportCitiesButton) exportCitiesButton.addEventListener('click', function () { exportRows(groupForExport('buyer_city'), 'stucks_por_cidade.xlsx'); });
+    var exportDriversButton = document.getElementById('exportDriversBtn'); if (exportDriversButton) exportDriversButton.addEventListener('click', function () { exportRows(groupForExport('driver_name', 'driver_id'), 'stucks_por_driver.xlsx'); });
+    var exportStatusButton = document.getElementById('exportStatusBtn'); if (exportStatusButton) exportStatusButton.addEventListener('click', function () { exportRows(groupForExport('tracking_status'), 'stucks_por_status.xlsx'); });
+    var copySummaryButton = document.getElementById('copySummaryBtn'); if (copySummaryButton) copySummaryButton.addEventListener('click', copySummary);
+    var saveButton = document.getElementById('saveBtn'); if (saveButton) saveButton.addEventListener('click', saveLocal);
+    var loadButton = document.getElementById('loadBtn'); if (loadButton) loadButton.addEventListener('click', loadLocal);
     document.getElementById('clearBtn').addEventListener('click', clearCurrent);
     document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
   }
