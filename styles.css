@@ -3595,3 +3595,22 @@ td.cogs-cell,
     flex-wrap: wrap;
   }
 }
+
+.hidden-file-input {
+  position: fixed;
+  left: -99999px;
+  top: -99999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+button.import-button {
+  border: 1px solid var(--cyan-soft);
+  cursor: pointer;
+}
+
+button.import-button:hover {
+  filter: brightness(1.08);
+}

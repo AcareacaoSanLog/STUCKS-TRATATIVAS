@@ -152,6 +152,7 @@ var MONITOR_DEFS = {
     bindEvents();
     createIcons();
     hardenGitHubPagesLayout();
+    verifyImportControls();
     populateCepCityFilter();
     renderEmpty();
     renderCepReference();
@@ -171,6 +172,8 @@ var MONITOR_DEFS = {
     els.emptyState = document.getElementById('emptyState');
     els.fileInput = document.getElementById('fileInput');
     els.cepInput = document.getElementById('cepInput');
+    els.importStucksBtn = document.getElementById('importStucksBtn');
+    els.importCepBtn = document.getElementById('importCepBtn');
     els.dropZone = document.getElementById('dropZone');
     els.cepDropZone = document.getElementById('cepDropZone');
     els.filterBar = document.getElementById('filterBar');
@@ -296,10 +299,12 @@ var MONITOR_DEFS = {
       button.addEventListener('click', function () { setView(button.dataset.viewJump); });
     });
 
-    bindFilePicker(els.fileInput, importStucksFile);
-    bindFilePicker(els.cepInput, importCepFile);
-    bindDropZone(els.dropZone, importStucksFile);
-    bindDropZone(els.cepDropZone, importCepFile);
+    bindFilePicker(els.fileInput, importStucksFile, 'STUCKS');
+    bindFilePicker(els.cepInput, importCepFile, 'CEP');
+    bindImportButton(els.importStucksBtn, els.fileInput, 'STUCKS');
+    bindImportButton(els.importCepBtn, els.cepInput, 'CEP');
+    bindDropZone(els.dropZone || els.importStucksBtn, importStucksFile);
+    bindDropZone(els.cepDropZone || els.importCepBtn, importCepFile);
 
     els.statusFilter.addEventListener('change', function () { state.filters.status = els.statusFilter.value; applyAndRender(); });
     els.cityFilter.addEventListener('change', function () { state.filters.city = els.cityFilter.value; applyAndRender(); });
@@ -386,12 +391,37 @@ var MONITOR_DEFS = {
     document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
   }
 
-  function bindFilePicker(input, handler) {
+  function bindFilePicker(input, handler, label) {
     if (!input || !handler) return;
     input.addEventListener('change', function (event) {
       var file = event.target.files && event.target.files[0];
-      if (file) handler(file);
-      event.target.value = '';
+      if (!file) {
+        setStatus('Nenhum arquivo selecionado para importar ' + (label || '') + '.', 'warn');
+        return;
+      }
+      setStatus('Arquivo selecionado para importar ' + (label || '') + ': ' + file.name, 'warn');
+      Promise.resolve(handler(file)).catch(function (error) {
+        console.error(error);
+        setStatus('Erro ao importar ' + (label || 'arquivo') + ': ' + (error.message || error), 'error');
+      }).finally(function () {
+        try { event.target.value = ''; } catch (error) {}
+      });
+    });
+  }
+
+  function bindImportButton(button, input, label) {
+    if (!button || !input) return;
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        input.value = '';
+        input.click();
+        setStatus('Selecione a planilha de ' + label + ' para importar.', 'warn');
+      } catch (error) {
+        console.error(error);
+        setStatus('O navegador bloqueou a seleção de arquivo. Tente atualizar a página ou usar Chrome/Edge. Erro: ' + (error.message || error), 'error');
+      }
     });
   }
 
@@ -411,7 +441,11 @@ var MONITOR_DEFS = {
     });
     zone.addEventListener('drop', function (event) {
       var file = event.dataTransfer.files && event.dataTransfer.files[0];
-      if (file) handler(file);
+      if (!file) return setStatus('Nenhum arquivo encontrado no arrastar/soltar.', 'warn');
+      Promise.resolve(handler(file)).catch(function (error) {
+        console.error(error);
+        setStatus('Erro ao importar arquivo arrastado: ' + (error.message || error), 'error');
+      });
     });
   }
 
@@ -980,17 +1014,23 @@ var MONITOR_DEFS = {
 
   async function importStucksFile(file) {
     try {
+      if (!file) throw new Error('Nenhum arquivo selecionado.');
+      validateImportFile(file);
       setStatus('Lendo STUCKS: ' + file.name + '...', 'warn');
       var rows = await parseAnyFileRows(file, 'stucks');
+      setStatus('Arquivo lido. Processando ' + Math.max(0, rows.length - 1) + ' linha(s)...', 'warn');
       await processImportedRows(rows, file.name);
     } catch (error) {
       console.error(error);
       setStatus('Erro ao importar STUCKS: ' + (error.message || 'verifique a planilha.'), 'error');
+      throw error;
     }
   }
 
   async function importCepFile(file) {
     try {
+      if (!file) throw new Error('Nenhum arquivo selecionado.');
+      validateImportFile(file);
       if (!state.rows.length) setStatus('Importando CEP. Depois importe/carregue a STUCKS para cruzar os rastreios.', 'warn');
       else setStatus('Lendo CEP: ' + file.name + '...', 'warn');
       var rows = await parseAnyFileRows(file, 'cep');
@@ -998,6 +1038,18 @@ var MONITOR_DEFS = {
     } catch (error) {
       console.error(error);
       setStatus('Erro ao importar CEP: ' + (error.message || 'verifique se há BR/rastreio e CEP.'), 'error');
+      throw error;
+    }
+  }
+
+  function validateImportFile(file) {
+    var name = String(file && file.name || '');
+    if (!/\.(xlsx|xls|csv|tsv|zip)$/i.test(name)) {
+      throw new Error('Formato não aceito. Use .xlsx, .xls, .csv, .tsv ou .zip.');
+    }
+    if (!file.size) throw new Error('Arquivo vazio ou bloqueado pelo navegador.');
+    if (!window.XLSX && /\.(xlsx|xls|zip)$/i.test(name)) {
+      throw new Error('Biblioteca XLSX não carregou. Atualize a página com Ctrl+F5 e confira se a pasta vendor foi enviada ao GitHub.');
     }
   }
 
@@ -2558,6 +2610,20 @@ var MONITOR_DEFS = {
   function escapeAttr(value) { return escapeHtml(value).replace(/`/g, '&#096;'); }
   function debounce(fn, wait) { var timer; return function () { clearTimeout(timer); var args = arguments; timer = setTimeout(function () { fn.apply(null, args); }, wait); }; }
 
+
+
+  function verifyImportControls() {
+    var missing = [];
+    if (!els.fileInput) missing.push('fileInput');
+    if (!els.cepInput) missing.push('cepInput');
+    if (!els.importStucksBtn) missing.push('importStucksBtn');
+    if (!els.importCepBtn) missing.push('importCepBtn');
+    if (missing.length) {
+      setStatus('Erro crítico: controles de importação não encontrados: ' + missing.join(', ') + '. Atualize os arquivos index.html e app.js no GitHub.', 'error');
+      return false;
+    }
+    return true;
+  }
 
   function hardenGitHubPagesLayout() {
     // Fallback de interface para GitHub Pages: o dashboard não pode depender só de ícone externo.

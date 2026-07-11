@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TORRE DE CONTROLE STUCKS</title>
-  <link rel="stylesheet" href="styles.css?v=stucks-js-estavel-20260711">
+  <link rel="stylesheet" href="styles.css?v=import-corrigido-20260711">
 </head>
 <body>
   <div class="app-shell">
@@ -63,16 +63,16 @@
           <button class="icon-button stable-action" id="clearBtn" title="Limpar base atual" aria-label="Limpar base atual"><span aria-hidden="true">🗑️</span></button>
           <button class="icon-button stable-action" id="copySummaryBtn" title="Copiar resumo" aria-label="Copiar resumo"><span aria-hidden="true">📋</span></button>
           <button class="icon-button stable-action" id="exportBtn" title="Exportar visão filtrada" aria-label="Exportar visão filtrada"><span aria-hidden="true">⬇️</span></button>
-          <label class="import-button" id="dropZone">
+          <button class="import-button stable-import-action" id="importStucksBtn" type="button">
             <span aria-hidden="true">☁️</span>
             <span>Importar STUCKS</span>
-            <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.zip">
-          </label>
-          <label class="import-button subtle-import" id="cepDropZone">
+          </button>
+          <button class="import-button subtle-import stable-import-action" id="importCepBtn" type="button">
             <span aria-hidden="true">📍</span>
             <span>Importar CEP</span>
-            <input id="cepInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.zip">
-          </label>
+          </button>
+          <input id="fileInput" class="hidden-file-input" type="file" accept=".xlsx,.xls,.csv,.tsv,.zip">
+          <input id="cepInput" class="hidden-file-input" type="file" accept=".xlsx,.xls,.csv,.tsv,.zip">
         </div>
       </header>
 
@@ -547,6 +547,6 @@
 
   <script src="vendor/xlsx.full.min.js"></script>
   <script src="vendor/lucide.min.js"></script>
-  <script src="app.js?v=stucks-js-estavel-20260711"></script>
+  <script src="app.js?v=import-corrigido-20260711"></script>
 </body>
 </html>
