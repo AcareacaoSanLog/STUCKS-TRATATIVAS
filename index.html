@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TORRE DE CONTROLE STUCKS</title>
+  <link rel="stylesheet" href="styles.css?v=stucks-tratativas-excel-auto-20260711">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <div class="brand">
+        <button class="brand-mark shopee-xpress" type="button" data-view-jump="dashboard" aria-label="Ir para Dashboard">
+          <strong>SANLOG</strong>
+        </button>
+        <div>
+          <h1>TORRE STUCKS</h1>
+          <p>Gestão operacional de BRs paradas</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-button active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>🏠 Dashboard</span></button>
+        <div class="nav-group monitor-group">
+          <button class="nav-button nav-toggle open" id="monitorToggle" type="button" aria-expanded="true">
+            <i data-lucide="boxes"></i><span>📦 Monitoramento</span><i data-lucide="chevron-up" class="toggle-icon"></i>
+          </button>
+          <div class="nav-submenu open" id="monitorMenu">
+            <button class="nav-button sub" data-view="monitoring" data-monitor-status="received"><i data-lucide="package-open"></i><span>📥 Received</span></button>
+            <button class="nav-button sub" data-view="monitoring" data-monitor-status="assigned"><i data-lucide="tags"></i><span>🏷️ Assigned</span></button>
+            <button class="nav-button sub" data-view="monitoring" data-monitor-status="soclh"><i data-lucide="truck"></i><span>🚚 SOC LH</span></button>
+            <button class="nav-button sub" data-view="monitoring" data-monitor-status="onhold"><i data-lucide="pause-circle"></i><span>⛔ OnHold</span></button>
+          </div>
+        </div>
+        <button class="nav-button" data-view="base"><i data-lucide="table"></i><span>📦 Base Stucks</span><b id="baseBadge" class="hidden">0</b></button>
+        <button class="nav-button" data-view="damages"><i data-lucide="alert-triangle"></i><span>⚠️ Avarias</span><b id="damageBadge" class="hidden">0</b></button>
+        <button class="nav-button" data-view="treatments"><i data-lucide="clipboard-list"></i><span>📝 Tratativas</span><b id="treatmentBadge" class="hidden">0</b></button>
+        <button class="nav-button" data-view="cities"><i data-lucide="map-pin"></i><span>📍 Cidades</span></button>
+        <button class="nav-button" data-view="drivers"><i data-lucide="truck"></i><span>🚚 Drivers</span></button>
+        <button class="nav-button" data-view="status"><i data-lucide="activity"></i><span>📊 Status</span></button>
+        <button class="nav-button" data-view="ceps"><i data-lucide="map"></i><span>🗺️ CEPs</span></button>
+        <button class="nav-button" data-view="history"><i data-lucide="history"></i><span>🕓 Histórico</span><b id="historyBadge" class="hidden">0</b></button>
+      </nav>
+
+      <div class="sidebar-status">
+        <span class="status-dot"></span>
+        <div>
+          <strong id="lastUpdate">Aguardando importação</strong>
+          <small><span id="rowCount">0</span> stucks carregados</small>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Operação TXF</p>
+          <h2 id="viewTitle">🏠 Dashboard Stucks</h2>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="saveBtn" title="Salvar base no navegador" aria-label="Salvar base no navegador"><i data-lucide="save"></i></button>
+          <button class="icon-button" id="loadBtn" title="Carregar base salva" aria-label="Carregar base salva"><i data-lucide="database"></i></button>
+          <button class="icon-button" id="clearBtn" title="Limpar base atual" aria-label="Limpar base atual"><i data-lucide="trash-2"></i></button>
+          <button class="icon-button" id="copySummaryBtn" title="Copiar resumo" aria-label="Copiar resumo"><i data-lucide="clipboard-copy"></i></button>
+          <button class="icon-button" id="exportBtn" title="Exportar visão filtrada" aria-label="Exportar visão filtrada"><i data-lucide="download"></i></button>
+          <label class="import-button" id="dropZone">
+            <i data-lucide="upload-cloud"></i>
+            <span>Importar STUCKS</span>
+            <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.zip">
+          </label>
+          <label class="import-button subtle-import" id="cepDropZone">
+            <i data-lucide="map-pin"></i>
+            <span>Importar CEP</span>
+            <input id="cepInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.zip">
+          </label>
+        </div>
+      </header>
+
+      <div class="cloud-status" id="appStatus">Importe uma planilha de STUCKS contendo shipment_id, tracking_status, ageing_last_status, cogs, buyer_city, driver_id e driver_name. Depois, se tiver, importe a planilha de CEP para cruzar cidade/bairro e atualizar status pela BR.</div>
+
+      <section class="notice" id="emptyState">
+        <div>
+          <strong>Dashboard exclusivo para STUCKS.</strong>
+          <span>Após importar, o painel monta KPIs, filtros, ranking por cidade, driver, status, avarias, CEP/bairro e tabela de priorização.</span>
+        </div>
+      </section>
+
+      <section class="filter-bar hidden" id="filterBar">
+        <div class="filter-field">
+          <label>Status</label>
+          <select id="statusFilter"></select>
+        </div>
+        <div class="filter-field">
+          <label>Cidade</label>
+          <select id="cityFilter"></select>
+        </div>
+        <div class="filter-field">
+          <label>Driver</label>
+          <select id="driverFilter"></select>
+        </div>
+        <div class="filter-field">
+          <label>Dias parados</label>
+          <select id="ageingFilter">
+            <option value="all">Todos</option>
+            <option value="0">0 dia</option>
+            <option value="1">1 dia</option>
+            <option value="2">2 dias</option>
+            <option value="3">3 dias</option>
+            <option value="4-6">4 a 6 dias</option>
+            <option value="7-9">7 a 9 dias</option>
+            <option value="10+">10+ dias</option>
+            <option value="blank">Sem dias</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Prioridade</label>
+          <select id="priorityFilter">
+            <option value="all">Todas</option>
+            <option value="Crítica">Crítica</option>
+            <option value="Alta">Alta</option>
+            <option value="Média">Média</option>
+            <option value="Baixa">Baixa</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Avaria</label>
+          <select id="avariaFilter">
+            <option value="all">Todas</option>
+            <option value="Sim">Sim</option>
+            <option value="Não">Não</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>CEP</label>
+          <select id="cepFilter">
+            <option value="all">Todos</option>
+            <option value="withCep">Com CEP</option>
+            <option value="withNeighborhood">Com bairro</option>
+            <option value="withoutCep">Sem CEP</option>
+          </select>
+        </div>
+        <div class="quick-filters">
+          <button class="mini-button" data-quick-filter="all">Todos</button>
+          <button class="mini-button" data-quick-filter="critical">Críticos 4+</button>
+          <button class="mini-button" data-quick-filter="noDriver">Sem driver</button>
+          <button class="mini-button" data-quick-filter="damage">Avaria</button>
+          <button class="mini-button" data-quick-filter="withCep">Com CEP</button>
+          <button class="mini-button" data-quick-filter="withNeighborhood">Com bairro</button>
+          <button class="mini-button" data-quick-filter="withoutCep">Sem CEP</button>
+          <button class="mini-button" data-quick-filter="highCogs">Maior COGS</button>
+        </div>
+      </section>
+
+      <section class="view active" id="dashboard">
+        <div class="kpi-grid" id="kpis"></div>
+
+        <div class="goal-grid">
+          <article class="goal-panel">
+            <div class="ring" id="criticalRing"><span id="criticalPct">0%</span></div>
+            <div>
+              <span class="label">🚨 Ageing crítico</span>
+              <h3 id="criticalTitle">Aguardando dados</h3>
+              <p id="criticalText">BRs com ageing_last_status 4+ entram como prioridade.</p>
+            </div>
+            <button class="plain-action" data-quick-filter="critical">Ver críticos</button>
+          </article>
+
+          <article class="goal-panel">
+            <div class="ring" id="driverRing"><span id="driverPct">0%</span></div>
+            <div>
+              <span class="label">🚚 Atribuição</span>
+              <h3 id="driverTitle">Aguardando dados</h3>
+              <p id="driverText">Controle de BRs com e sem driver vinculado.</p>
+            </div>
+            <button class="plain-action" data-quick-filter="noDriver">Sem driver</button>
+          </article>
+        </div>
+
+        <div class="target-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>🤖 Pontos de atenção</h3>
+            </div>
+            <div id="insightsList" class="metric-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>📌 Filtros ativos</h3>
+              <button class="text-button" id="resetFiltersBtn">Limpar filtros</button>
+            </div>
+            <div id="activeFilters" class="metric-list"></div>
+          </section>
+        </div>
+
+        <div class="work-grid">
+          <section class="panel large">
+            <div class="panel-head">
+              <h3>🚨 Fila prioritária de stucks</h3>
+              <button class="text-button" data-view-jump="base">Abrir base</button>
+            </div>
+            <div id="priorityList" class="stack-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>📍 Cidades com mais stucks</h3>
+              <button class="text-button" data-view-jump="cities">Ver cidades</button>
+            </div>
+            <div id="cityRadar" class="city-radar"></div>
+          </section>
+        </div>
+
+        <div class="table-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>📊 Stucks por status</h3>
+              <button class="text-button" data-view-jump="status">Ver status</button>
+            </div>
+            <div class="table-wrap"><table id="statusTable"></table></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h3>🚚 Top drivers</h3>
+              <button class="text-button" data-view-jump="drivers">Ver drivers</button>
+            </div>
+            <div class="table-wrap"><table id="driversMiniTable"></table></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="monitoring">
+        <section class="panel monitor-panel-main">
+          <div class="panel-head">
+            <div>
+              <h3 id="monitorSummaryTitle">📥 BRs em Received por cidade/bairro</h3>
+              <p class="panel-description">Use cidade, bairro, quantidade e busca por BR para identificar os grupos e preencher a tratativa.</p>
+            </div>
+            <span class="auto-note" id="monitorTotalNote">Importe a base para calcular.</span>
+          </div>
+
+          <div class="monitor-filter-panel">
+            <label class="monitor-field">
+              <span>CIDADE</span>
+              <select id="monitorCityFilter"><option value="all">Todas</option></select>
+            </label>
+            <label class="monitor-field">
+              <span>BAIRRO</span>
+              <select id="monitorNeighborhoodFilter"><option value="all">Todos</option></select>
+            </label>
+            <label class="monitor-field">
+              <span>DIAS PARADOS</span>
+              <select id="monitorAgeingFilter">
+                <option value="all">Todos</option>
+                <option value="0">0 dia</option>
+                <option value="1">1 dia</option>
+                <option value="2">2 dias</option>
+                <option value="3">3 dias</option>
+                <option value="4-6">4 a 6 dias</option>
+                <option value="7-9">7 a 9 dias</option>
+                <option value="10+">10+ dias</option>
+                <option value="blank">Sem dias</option>
+              </select>
+            </label>
+            <label class="monitor-field">
+              <span>QUANTIDADE</span>
+              <select id="monitorSortFilter">
+                <option value="desc">Maior para menor</option>
+                <option value="asc">Menor para maior</option>
+              </select>
+            </label>
+            <label class="monitor-field monitor-search-field">
+              <span>BUSCAR BR</span>
+              <input id="monitorSearchInput" type="search" placeholder="Digite a BR ou tracking">
+            </label>
+          </div>
+
+          <div class="result-list monitor-results" id="monitorSearchResults"></div>
+          <div class="table-wrap tall"><table id="monitorSummaryTable"></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="base">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>📦 Base de Stucks</h3>
+            <div class="panel-actions">
+              <input class="search-input" id="searchInput" type="search" placeholder="Buscar BR, status, cidade, driver, CEP, bairro...">
+              <button class="text-button" id="exportBaseBtn">Exportar tabela</button>
+            </div>
+          </div>
+          <div class="table-wrap tall"><table id="baseTable"></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="damages">
+        <section class="panel damage-page-panel">
+          <div class="panel-head">
+            <div>
+              <h3>⚠️ Adicionar avaria</h3>
+              <p class="panel-description">Cole uma ou várias BRs para marcar como avaria e contabilizar automaticamente no dashboard.</p>
+            </div>
+            <span class="auto-note">Marca automaticamente como <strong>avaria = Sim</strong></span>
+          </div>
+
+          <div class="damage-form">
+            <label>
+              <span>BR do pacote</span>
+              <input id="damageSingleInput" type="text" placeholder="Ex.: BR123456789" autocomplete="off">
+            </label>
+
+            <label>
+              <span>BRs em massa</span>
+              <textarea id="damageShipmentInput" rows="6" placeholder="Cole várias BRs aqui, uma por linha"></textarea>
+            </label>
+
+            <div class="damage-lookup">
+              <div><span>CEP da BR</span><strong id="damageLookupCep">Digite a BR</strong></div>
+              <div><span>Cidade</span><strong id="damageLookupCity">Digite a BR</strong></div>
+              <div><span>Bairro</span><strong id="damageLookupNeighborhood">Digite a BR</strong></div>
+            </div>
+
+            <label>
+              <span>Tratativa inicial</span>
+              <textarea id="damageNoteInput" rows="4" placeholder="Ex.: Avaria registrada e aguardando tratativa"></textarea>
+            </label>
+
+            <button class="import-button full-button" id="applyDamageBtn" type="button">Adicionar avaria</button>
+          </div>
+        </section>
+
+        <section class="damage-summary-grid">
+          <article class="damage-mini-card"><span>BRs cadastradas</span><strong id="damageListCount">0</strong></article>
+          <article class="damage-mini-card"><span>Encontradas na base</span><strong id="damageMatchedCount">0</strong></article>
+          <article class="damage-mini-card"><span>Não encontradas</span><strong id="damageUnmatchedCount">0</strong></article>
+          <article class="damage-mini-card"><span>Total no dashboard</span><strong id="damageDashboardCount">0</strong></article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>📋 Avarias cadastradas</h3>
+              <p class="panel-description">A lista fica salva neste navegador e será aplicada novamente quando você importar uma nova base.</p>
+            </div>
+            <div class="panel-actions">
+              <button class="text-button" id="exportDamagesBtn" type="button">Exportar avarias</button>
+              <button class="text-button danger" id="clearDamageBtn" type="button">Limpar avarias</button>
+            </div>
+          </div>
+          <div class="table-wrap tall"><table id="damageTable"></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="treatments">
+        <section class="panel treatment-page-panel">
+          <div class="panel-head">
+            <div>
+              <h3>📝 Estoque de tratativas na nuvem</h3>
+              <p class="panel-description">Toda tratativa preenchida por BR fica salva no Supabase. Ao abrir em outro PC ou importar a base de amanhã, a tratativa volta automaticamente pela BR.</p>
+            </div>
+            <div class="panel-actions">
+              <button class="text-button" id="loadSheetTreatmentsBtn" type="button">Puxar Supabase</button>
+              <button class="text-button" id="exportTreatmentsBtn" type="button">Baixar backup Excel</button>
+              <button class="text-button danger" id="clearTreatmentsBtn" type="button">Limpar local</button>
+            </div>
+          </div>
+
+          <div class="sheet-sync-box supabase-sync-box">
+            <div>
+              <strong>Supabase: estoque central das tratativas</strong>
+              <span>Configure uma vez a URL e a anon/public key do projeto. Depois, todo clique em Salvar sincroniza na tabela <b>stucks_tratativas</b>.</span>
+            </div>
+            <label>
+              <span>SUPABASE_URL</span>
+              <input id="treatmentSheetUrlInput" type="text" placeholder="https://seu-projeto.supabase.co" autocomplete="off">
+            </label>
+            <label>
+              <span>SUPABASE_ANON_KEY / PUBLISHABLE KEY</span>
+              <input id="treatmentSupabaseKeyInput" type="password" placeholder="Cole a chave pública do Supabase" autocomplete="off">
+            </label>
+            <div class="sheet-sync-actions">
+              <button class="text-button" id="saveSheetConfigBtn" type="button">Salvar conexão</button>
+              <button class="text-button" id="syncSheetTreatmentsBtn" type="button">Sincronizar agora</button>
+            </div>
+            <small id="treatmentSheetStatus">Configure o Supabase para sincronizar tratativas entre PCs.</small>
+          </div>
+
+          <div class="cloud-status muted" id="treatmentStatus">Nenhuma tratativa salva ainda.</div>
+
+          <div class="damage-form treatment-form">
+            <label>
+              <span>BR do pacote</span>
+              <input id="treatmentSingleInput" type="text" placeholder="Ex.: BR123456789" autocomplete="off">
+            </label>
+            <label>
+              <span>Tratativa</span>
+              <textarea id="treatmentSingleText" rows="4" placeholder="Digite a tratativa para salvar nessa BR"></textarea>
+            </label>
+            <button class="import-button full-button" id="saveSingleTreatmentBtn" type="button">Salvar tratativa da BR</button>
+          </div>
+        </section>
+
+        <section class="damage-summary-grid treatment-summary-grid">
+          <article class="damage-mini-card"><span>Tratativas salvas</span><strong id="treatmentSavedCount">0</strong></article>
+          <article class="damage-mini-card"><span>Encontradas na base atual</span><strong id="treatmentMatchedCount">0</strong></article>
+          <article class="damage-mini-card"><span>Não encontradas agora</span><strong id="treatmentUnmatchedCount">0</strong></article>
+          <article class="damage-mini-card"><span>Com tratativa na visão atual</span><strong id="treatmentVisibleCount">0</strong></article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>📋 Tratativas salvas por BR</h3>
+              <p class="panel-description">Essa lista é a sua base fixa de tratativas. Ela fica salva localmente por BR e é reaplicada automaticamente em novas importações.</p>
+            </div>
+            <div class="panel-actions">
+              <input class="search-input" id="treatmentSearchInput" type="search" placeholder="Buscar BR ou tratativa...">
+            </div>
+          </div>
+          <div class="table-wrap tall"><table id="treatmentsTable"></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="cities">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>📍 Ranking por cidade</h3>
+            <button class="text-button" id="exportCitiesBtn">Exportar cidades</button>
+          </div>
+          <div class="table-wrap tall"><table id="citiesTable"></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="drivers">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>🚚 Ranking por driver</h3>
+            <button class="text-button" id="exportDriversBtn">Exportar drivers</button>
+          </div>
+          <div class="table-wrap tall"><table id="driversTable"></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="status">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>📊 Ranking por tracking_status</h3>
+            <button class="text-button" id="exportStatusBtn">Exportar status</button>
+          </div>
+          <div class="table-wrap tall"><table id="statusFullTable"></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="ceps">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>🗺️ Base auxiliar de CEPs</h3>
+            <div class="panel-actions">
+              <input class="search-input" id="cepSearchInput" type="search" placeholder="Buscar CEP, cidade ou bairro...">
+              <select id="cepCityFilter"></select>
+            </div>
+          </div>
+          <div class="cloud-status muted" id="cepStatus">Base CEP fixa carregada para cruzar cidade e bairro após a importação do CEP por rastreio.</div>
+          <div class="table-wrap tall"><table id="cepTable"></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="history">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>🕓 Histórico de importações</h3>
+            <button class="text-button danger" id="clearHistoryBtn">Limpar histórico</button>
+          </div>
+          <div class="table-wrap tall"><table id="historyTable"></table></div>
+        </section>
+      </section>
+
+      <dialog class="modal monitor-modal" id="monitorModal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div>
+              <h3 id="monitorModalTitle">Detalhes do monitoramento</h3>
+              <p id="monitorModalSubtitle">BRs abertas para tratativa.</p>
+            </div>
+            <div class="modal-actions">
+              <button class="text-button" id="monitorModalCopyBtn" type="button">Copiar BRs</button>
+              <button class="text-button" id="monitorModalExportBtn" type="button">Exportar</button>
+              <button class="text-button danger" id="monitorModalCloseBtn" type="button">Fechar</button>
+            </div>
+          </div>
+
+          <section class="modal-filter-panel monitor-detail-filter-panel" aria-label="Filtros dos detalhes">
+            <label>
+              <span>Status</span>
+              <select id="monitorDetailStatusFilter"><option value="all">Todos</option></select>
+            </label>
+            <label>
+              <span>Cidade</span>
+              <select id="monitorDetailCityFilter"><option value="all">Todas</option></select>
+            </label>
+            <label>
+              <span>Bairro</span>
+              <select id="monitorDetailNeighborhoodFilter"><option value="all">Todos</option></select>
+            </label>
+            <label>
+              <span>Dias parados</span>
+              <select id="monitorDetailAgeingFilter">
+                <option value="all">Todos</option>
+                <option value="0">0 dia</option>
+                <option value="1">1 dia</option>
+                <option value="2">2 dias</option>
+                <option value="3">3 dias</option>
+                <option value="4-6">4 a 6 dias</option>
+                <option value="7-9">7 a 9 dias</option>
+                <option value="10+">10+ dias</option>
+                <option value="blank">Sem dias</option>
+              </select>
+            </label>
+            <label>
+              <span>Driver</span>
+              <select id="monitorDetailDriverFilter"><option value="all">Todos</option></select>
+            </label>
+            <label>
+              <span>Ordenar</span>
+              <select id="monitorDetailSortFilter">
+                <option value="default">Padrão</option>
+                <option value="ageing_desc">Maior dias parados</option>
+                <option value="ageing_asc">Menor dias parados</option>
+                <option value="cogs_desc">Maior valor</option>
+                <option value="cogs_asc">Menor valor</option>
+                <option value="br_asc">BR A-Z</option>
+              </select>
+            </label>
+            <label>
+              <span>Buscar BR</span>
+              <input id="monitorDetailSearchInput" type="search" placeholder="Digite BR, tracking, CEP ou tratativa">
+            </label>
+            <button class="text-button modal-clear-filters" id="monitorDetailClearFiltersBtn" type="button">Limpar filtros</button>
+          </section>
+
+          <div class="table-wrap modal-table"><table id="monitorModalTable"></table></div>
+          <div class="modal-footer-actions">
+            <button class="import-button full-button" id="monitorSaveTreatmentsBtn" type="button">Salvar alterações</button>
+          </div>
+        </div>
+      </dialog>
+    </main>
+  </div>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/lucide.min.js"></script>
+  <script src="app.js?v=stucks-tratativas-excel-auto-20260711"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+COMO USAR - GITHUB PAGES + SUPABASE
+
+1. No Supabase:
+   - Abra seu projeto.
+   - Vá em SQL Editor > New query.
+   - Cole o conteúdo do arquivo SUPABASE_STUCKS_TRATATIVAS.sql.
+   - Clique em Run.
+
+2. Pegue as chaves:
+   - Project Settings > API.
+   - Copie Project URL.
+   - Copie anon public key / publishable key.
+   - Não use service_role key no dashboard.
+
+3. No dashboard:
+   - Abra a aba Tratativas.
+   - Cole SUPABASE_URL.
+   - Cole SUPABASE_ANON_KEY.
+   - Clique em Salvar conexão.
+
+4. Fluxo operacional:
+   - Importe a planilha STUCKS do dia.
+   - O dashboard puxa as tratativas da nuvem e reaplica pela BR.
+   - Preencha/edite a tratativa.
+   - Clique em Salvar.
+   - A tratativa é salva no Supabase por shipment_id.
+   - Em outro PC, usando a mesma conexão, a tratativa aparece automaticamente.
+
+5. GitHub Pages:
+   - Envie todos os arquivos desta pasta para um repositório.
+   - Ative Settings > Pages > Deploy from branch.
+   - Use branch main e pasta /root.
+   - Acesse o link publicado.
+
+SEGURANÇA:
+Esta versão usa anon/public key no navegador. Use um projeto Supabase dedicado ao dashboard.
+As políticas RLS do SQL deixam a tabela acessível para quem tiver a URL e a chave pública.
