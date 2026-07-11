@@ -151,6 +151,7 @@ var MONITOR_DEFS = {
     loadTreatmentSheetConfig();
     bindEvents();
     createIcons();
+    hardenGitHubPagesLayout();
     populateCepCityFilter();
     renderEmpty();
     renderCepReference();
@@ -415,7 +416,11 @@ var MONITOR_DEFS = {
   }
 
   function createIcons() {
-    if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+    try {
+      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+    } catch (error) {
+      console.warn('Ícones externos não carregaram. Usando interface estável com texto/emoji.', error);
+    }
   }
 
   function safeGetStorage(key, fallback) {
@@ -1414,6 +1419,7 @@ var MONITOR_DEFS = {
     renderTable(els.baseTable, BASE_COLUMNS.map(label), []);
     renderDamagePage();
     renderTreatmentsPage();
+    hardenGitHubPagesLayout();
   }
 
   var STATUS_KPI_DEFS = [
@@ -2551,6 +2557,43 @@ var MONITOR_DEFS = {
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
   function escapeAttr(value) { return escapeHtml(value).replace(/`/g, '&#096;'); }
   function debounce(fn, wait) { var timer; return function () { clearTimeout(timer); var args = arguments; timer = setTimeout(function () { fn.apply(null, args); }, wait); }; }
+
+
+  function hardenGitHubPagesLayout() {
+    // Fallback de interface para GitHub Pages: o dashboard não pode depender só de ícone externo.
+    var iconFallbacks = {
+      saveBtn: '💾',
+      loadBtn: '🗄️',
+      clearBtn: '🗑️',
+      copySummaryBtn: '📋',
+      exportBtn: '⬇️'
+    };
+
+    Object.keys(iconFallbacks).forEach(function (id) {
+      var button = document.getElementById(id);
+      if (!button) return;
+      var visibleText = (button.textContent || '').trim();
+      if (!visibleText || visibleText.length > 4) {
+        button.innerHTML = '<span aria-hidden="true">' + iconFallbacks[id] + '</span>';
+      }
+      button.classList.add('stable-action');
+    });
+
+    document.querySelectorAll('.nav-button').forEach(function (button) {
+      if (!button.querySelector('span')) return;
+      var label = button.querySelector('span').textContent.trim();
+      if (!label) button.style.display = 'none';
+    });
+
+    document.querySelectorAll('.top-actions .import-button').forEach(function (button) {
+      button.classList.add('stable-import-action');
+    });
+
+    if (els && els.appStatus && !state.rows.length) {
+      els.appStatus.textContent = 'Aguardando importação da STUCKS. As tratativas ficam na nuvem, mas a base do dia precisa ser importada neste PC para cruzar pela BR.';
+      els.appStatus.className = 'cloud-status warn';
+    }
+  }
 
   // =========================================================
   // SUPABASE COMO ESTOQUE CENTRAL DE TRATATIVAS

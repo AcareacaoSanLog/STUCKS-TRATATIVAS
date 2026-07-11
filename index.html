@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TORRE DE CONTROLE STUCKS</title>
-  <link rel="stylesheet" href="styles.css?v=stucks-tratativas-excel-auto-20260711">
+  <link rel="stylesheet" href="styles.css?v=stucks-js-estavel-20260711">
 </head>
 <body>
   <div class="app-shell">
@@ -58,18 +58,18 @@
           <h2 id="viewTitle">🏠 Dashboard Stucks</h2>
         </div>
         <div class="top-actions">
-          <button class="icon-button" id="saveBtn" title="Salvar base no navegador" aria-label="Salvar base no navegador"><i data-lucide="save"></i></button>
-          <button class="icon-button" id="loadBtn" title="Carregar base salva" aria-label="Carregar base salva"><i data-lucide="database"></i></button>
-          <button class="icon-button" id="clearBtn" title="Limpar base atual" aria-label="Limpar base atual"><i data-lucide="trash-2"></i></button>
-          <button class="icon-button" id="copySummaryBtn" title="Copiar resumo" aria-label="Copiar resumo"><i data-lucide="clipboard-copy"></i></button>
-          <button class="icon-button" id="exportBtn" title="Exportar visão filtrada" aria-label="Exportar visão filtrada"><i data-lucide="download"></i></button>
+          <button class="icon-button stable-action" id="saveBtn" title="Salvar base no navegador" aria-label="Salvar base no navegador"><span aria-hidden="true">💾</span></button>
+          <button class="icon-button stable-action" id="loadBtn" title="Carregar base salva" aria-label="Carregar base salva"><span aria-hidden="true">🗄️</span></button>
+          <button class="icon-button stable-action" id="clearBtn" title="Limpar base atual" aria-label="Limpar base atual"><span aria-hidden="true">🗑️</span></button>
+          <button class="icon-button stable-action" id="copySummaryBtn" title="Copiar resumo" aria-label="Copiar resumo"><span aria-hidden="true">📋</span></button>
+          <button class="icon-button stable-action" id="exportBtn" title="Exportar visão filtrada" aria-label="Exportar visão filtrada"><span aria-hidden="true">⬇️</span></button>
           <label class="import-button" id="dropZone">
-            <i data-lucide="upload-cloud"></i>
+            <span aria-hidden="true">☁️</span>
             <span>Importar STUCKS</span>
             <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.zip">
           </label>
           <label class="import-button subtle-import" id="cepDropZone">
-            <i data-lucide="map-pin"></i>
+            <span aria-hidden="true">📍</span>
             <span>Importar CEP</span>
             <input id="cepInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.zip">
           </label>
@@ -547,6 +547,6 @@
 
   <script src="vendor/xlsx.full.min.js"></script>
   <script src="vendor/lucide.min.js"></script>
-  <script src="app.js?v=stucks-tratativas-excel-auto-20260711"></script>
+  <script src="app.js?v=stucks-js-estavel-20260711"></script>
 </body>
 </html>

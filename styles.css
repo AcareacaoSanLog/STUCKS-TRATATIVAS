@@ -3534,3 +3534,64 @@ td.cogs-cell,
   color: #ffcf00;
   border-color: rgba(255, 207, 0, .34);
 }
+
+
+/* JS estável GitHub Pages */
+.icon-button.stable-action,
+.stable-action {
+  min-width: 42px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  color: #fff;
+}
+
+.icon-button.stable-action span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+}
+
+.stable-import-action {
+  gap: 8px;
+}
+
+.top-actions {
+  align-items: center;
+}
+
+.top-actions .icon-button:empty::before {
+  content: "•";
+  color: var(--cyan);
+}
+
+.cloud-status.warn {
+  color: #ffcf00;
+  border-color: rgba(255, 207, 0, .35);
+  background: rgba(255, 207, 0, .06);
+}
+
+#emptyState {
+  min-height: 70px;
+}
+
+.view.active,
+.main,
+.panel,
+.card,
+.kpi,
+.topbar {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .top-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
