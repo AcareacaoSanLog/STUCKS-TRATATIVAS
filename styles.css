@@ -404,3 +404,102 @@ td .textarea,
     padding: 12px;
   }
 }
+
+
+/* =========================================================
+   CENTRALIZAÇÃO DEFINITIVA DOS CARDS DO DASHBOARD
+   ========================================================= */
+.old-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  justify-content: center;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
+.old-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  min-height: 126px;
+  padding: 16px 12px;
+}
+
+.old-kpi h3 {
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.old-kpi-number {
+  width: 100%;
+  text-align: center;
+  margin: 0;
+}
+
+.old-kpi p {
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.old-kpi::after {
+  right: 50%;
+  transform: translateX(50%);
+  top: -36px;
+}
+
+/* Cards maiores também ficam alinhados/centralizados sem estourar */
+.old-health-card {
+  align-items: center;
+}
+
+.old-health-card .ring {
+  justify-self: center;
+}
+
+.old-health-card > div {
+  min-width: 0;
+}
+
+.old-health-card h3,
+.old-health-card strong,
+.old-health-card p {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1501px) {
+  .old-kpi-row {
+    grid-template-columns: repeat(10, minmax(142px, 1fr));
+  }
+}
+
+@media (max-width: 1500px) {
+  .old-kpi-row {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .old-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .old-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
