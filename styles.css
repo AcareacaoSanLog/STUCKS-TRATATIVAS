@@ -653,3 +653,95 @@ input,select,textarea,button{max-width:100%}
   .ring{justify-self:center}
   .table-wrap table{min-width:860px}
 }
+
+
+/* =========================================================
+   CORREÇÃO FINAL DA LATERAL: remove faixa preta e mantém
+   o mesmo visual azul do layout em toda a altura.
+   ========================================================= */
+html,
+body {
+  background:
+    linear-gradient(90deg, #071625 0, #071625 var(--sidebar-w), #09233a var(--sidebar-w), #02070d 100%) !important;
+}
+
+.app {
+  background:
+    linear-gradient(90deg, #071625 0, #071625 var(--sidebar-w), #09233a var(--sidebar-w), #02070d 100%) !important;
+}
+
+.sidebar {
+  background:
+    linear-gradient(180deg, #092139 0%, #071625 48%, #061321 100%) !important;
+  background-color: #071625 !important;
+  box-shadow: inset -1px 0 0 #123856;
+}
+
+/* cria uma camada fixa atrás do menu para cobrir toda a altura da tela */
+.sidebar::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: linear-gradient(180deg, #092139 0%, #071625 48%, #061321 100%);
+  z-index: -1;
+}
+
+/* evita que a área do conteúdo apareça preta no encontro com o menu */
+.main {
+  background:
+    linear-gradient(180deg, #09233a 0%, #061a2b 38%, #02070d 100%) !important;
+}
+
+/* estiliza a barra de rolagem do menu para não ficar branca/quebrada */
+.sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #1b5b83 #071625;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 9px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: #071625;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #1b5b83;
+  border-radius: 999px;
+  border: 2px solid #071625;
+}
+
+/* mantém a correção também quando a largura da sidebar muda */
+@media (max-width: 1250px) {
+  html,
+  body,
+  .app {
+    background:
+      linear-gradient(90deg, #071625 0, #071625 var(--sidebar-w), #09233a var(--sidebar-w), #02070d 100%) !important;
+  }
+
+  .sidebar::before {
+    width: var(--sidebar-w);
+  }
+}
+
+/* no mobile o menu deixa de ser lateral e vira bloco normal */
+@media (max-width: 900px) {
+  html,
+  body,
+  .app {
+    background: linear-gradient(180deg, #09233a 0%, #02070d 100%) !important;
+  }
+
+  .sidebar::before {
+    display: none;
+  }
+
+  .sidebar {
+    background: linear-gradient(180deg, #092139 0%, #071625 100%) !important;
+  }
+}
