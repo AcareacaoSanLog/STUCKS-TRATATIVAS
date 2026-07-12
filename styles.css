@@ -89,10 +89,10 @@ table{width:100%;border-collapse:collapse;min-width:760px}
 th,td{padding:11px 12px;border-bottom:1px solid #124365;text-align:left;vertical-align:middle}
 th{color:#bfe7ff;font-size:12px;text-transform:uppercase;background:#082943;position:sticky;top:0;z-index:1}
 tr:hover td{background:rgba(22,133,255,.08)}
-.pill{border-radius:999px;padding:5px 10px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;min-width:75px}
+.pill{border-radius:999px;padding:6px 12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;min-width:86px;line-height:1.15;white-space:nowrap;word-break:keep-all;overflow-wrap:normal;vertical-align:middle}
 .yes{background:#ff7b2e;color:#fff}
 .no{background:#1c4263;color:#fff}
-.statuspill{background:#ffd000;color:#08111c}
+.statuspill{background:rgba(0,230,255,.12);color:#dffaff;border:1px solid rgba(0,230,255,.38);box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);min-width:max-content}
 .danger{background:#2a1020;color:#ff9ba5}
 .okpill{background:#0c5735;color:#fff}
 .treatment{color:#a8d7ff}
@@ -607,7 +607,7 @@ table td:last-child {
 }
 
 /* === CORREÇÃO FINAL DE LAYOUT: sidebar + conteúdo sem quebra === */
-:root{--sidebar-w:248px}
+:root{--sidebar-w:286px}
 html,body{width:100%;max-width:100%;min-height:100%;overflow-x:hidden!important;background:#02080f}
 .app{width:100%;max-width:100%;min-height:100vh;display:grid;grid-template-columns:var(--sidebar-w) minmax(0,1fr);align-items:stretch;overflow-x:hidden}
 .sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);max-width:var(--sidebar-w);height:100vh;min-height:100vh;position:sticky;top:0;overflow-y:auto;overflow-x:hidden!important;scrollbar-gutter:stable;border-right:1px solid #123856}
@@ -629,8 +629,8 @@ table th:first-child,table td:first-child,table td:first-child b,table td:first-
 input,select,textarea,button{max-width:100%}
 .actions{flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:1250px){
-  :root{--sidebar-w:220px}
-  .app{grid-template-columns:var(--sidebar-w) minmax(0,1fr)}
+  :root{--sidebar-w:248px}
+  .app{grid-template-columns:var(--sidebar-w) minmax(0,1fr)!important}
   .sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);max-width:var(--sidebar-w)}
   .old-main-grid{grid-template-columns:1fr}
   .old-health-card{grid-template-columns:84px minmax(0,1fr)}
@@ -813,22 +813,29 @@ body {
    ========================================================= */
 .app {
   display: grid !important;
-  grid-template-columns: 286px minmax(0, 1fr) !important;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) !important;
   align-items: start !important;
   min-height: 100vh !important;
 }
 
 .sidebar {
-  position: sticky !important;
+  position: fixed !important;
   top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
   align-self: start !important;
+  width: var(--sidebar-w) !important;
+  min-width: var(--sidebar-w) !important;
+  max-width: var(--sidebar-w) !important;
   height: 100vh !important;
+  min-height: 100vh !important;
   max-height: 100vh !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
 }
 
 .main {
+  grid-column: 2 !important;
   min-width: 0 !important;
   min-height: 100vh !important;
 }
@@ -840,13 +847,259 @@ body {
 @media (max-width: 900px) {
   .app {
     display: block !important;
+    grid-template-columns: 1fr !important;
   }
 
   .sidebar {
     position: relative !important;
     top: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
   }
+
+  .main {
+    grid-column: auto !important;
+  }
+}
+
+/* Ajuste final de espacamento das tags de status dentro das tabelas */
+td .pill,
+td .statuspill,
+th .pill,
+th .statuspill {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  width: max-content;
+  max-width: none;
+}
+
+td:has(.statuspill) {
+  min-width: 180px;
+  width: 1%;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+/* Anti-quebra global: campos da tabela nao devem partir palavras no meio */
+.table-wrap {
+  overflow-x: auto !important;
+}
+
+.table-wrap table {
+  width: max-content !important;
+  min-width: 100% !important;
+}
+
+table th,
+table td {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  max-width: none !important;
+}
+
+table td .pill,
+table td .statuspill {
+  flex: 0 0 auto;
+}
+
+table td .textarea {
+  white-space: pre-wrap !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  min-width: 260px;
+}
+
+.treatment {
+  white-space: nowrap !important;
+}
+
+/* Alinhamento final: todas as tabelas usam colunas estaveis */
+.data-table,
+.modal-table,
+.monitor-table,
+.treatments-table,
+.simple-table,
+.status-days-table {
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+  width: 100% !important;
+  min-width: 980px !important;
+}
+
+.data-table th,
+.data-table td,
+.modal-table th,
+.modal-table td,
+.monitor-table th,
+.monitor-table td,
+.treatments-table th,
+.treatments-table td,
+.simple-table th,
+.simple-table td,
+.status-days-table th,
+.status-days-table td {
+  text-align: left !important;
+  vertical-align: middle !important;
+  padding: 12px 14px !important;
+}
+
+.monitor-table th:nth-child(1),
+.monitor-table td:nth-child(1) { width: 22%; }
+.monitor-table th:nth-child(2),
+.monitor-table td:nth-child(2) { width: 16%; }
+.monitor-table th:nth-child(3),
+.monitor-table td:nth-child(3) { width: 18%; }
+.monitor-table th:nth-child(4),
+.monitor-table td:nth-child(4) { width: 20%; }
+.monitor-table th:nth-child(5),
+.monitor-table td:nth-child(5) { width: 12%; }
+.monitor-table th:nth-child(6),
+.monitor-table td:nth-child(6) {
+  width: 6%;
+  text-align: center !important;
+}
+.monitor-table th:nth-child(7),
+.monitor-table td:nth-child(7) {
+  width: 6%;
+  text-align: right !important;
+}
+
+.data-table { min-width: 1380px !important; }
+.data-table th:nth-child(1),
+.data-table td:nth-child(1) { width: 170px; }
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) { width: 190px; }
+.data-table th:nth-child(3),
+.data-table td:nth-child(3) { width: 130px; }
+.data-table th:nth-child(4),
+.data-table td:nth-child(4) {
+  width: 130px;
+  text-align: right !important;
+}
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) { width: 190px; }
+.data-table th:nth-child(6),
+.data-table td:nth-child(6) { width: 170px; }
+.data-table th:nth-child(7),
+.data-table td:nth-child(7) { width: 160px; }
+.data-table th:nth-child(8),
+.data-table td:nth-child(8) {
+  width: 120px;
+  text-align: center !important;
+}
+.data-table th:nth-child(9),
+.data-table td:nth-child(9) { width: 260px; }
+
+.modal-table { min-width: 1320px !important; }
+.modal-table th:nth-child(1),
+.modal-table td:nth-child(1) { width: 165px; }
+.modal-table th:nth-child(2),
+.modal-table td:nth-child(2) { width: 195px; }
+.modal-table th:nth-child(3),
+.modal-table td:nth-child(3) { width: 185px; }
+.modal-table th:nth-child(4),
+.modal-table td:nth-child(4) { width: 145px; }
+.modal-table th:nth-child(5),
+.modal-table td:nth-child(5) { width: 135px; }
+.modal-table th:nth-child(6),
+.modal-table td:nth-child(6) {
+  width: 80px;
+  text-align: center !important;
+}
+.modal-table th:nth-child(7),
+.modal-table td:nth-child(7) {
+  width: 125px;
+  text-align: right !important;
+}
+.modal-table th:nth-child(8),
+.modal-table td:nth-child(8) {
+  width: 120px;
+  text-align: center !important;
+}
+.modal-table th:nth-child(9),
+.modal-table td:nth-child(9) { width: 275px; }
+
+.treatments-table { min-width: 1040px !important; }
+.treatments-table th:nth-child(1),
+.treatments-table td:nth-child(1) { width: 170px; }
+.treatments-table th:nth-child(2),
+.treatments-table td:nth-child(2) { width: 310px; }
+.treatments-table th:nth-child(3),
+.treatments-table td:nth-child(3) {
+  width: 125px;
+  text-align: center !important;
+}
+.treatments-table th:nth-child(4),
+.treatments-table td:nth-child(4) { width: 190px; }
+.treatments-table th:nth-child(5),
+.treatments-table td:nth-child(5) { width: 170px; }
+.treatments-table th:nth-child(6),
+.treatments-table td:nth-child(6) {
+  width: 120px;
+  text-align: right !important;
+}
+
+.simple-table th:last-child,
+.simple-table td:last-child,
+.status-days-table th:nth-child(2),
+.status-days-table td:nth-child(2) {
+  text-align: center !important;
+}
+
+/* Centralizacao visual das colunas: cabecalho e conteudo no mesmo eixo */
+.modal-table th:nth-child(n+2):nth-child(-n+8),
+.modal-table td:nth-child(n+2):nth-child(-n+8),
+.data-table th:nth-child(n+2):nth-child(-n+8),
+.data-table td:nth-child(n+2):nth-child(-n+8) {
+  text-align: center !important;
+}
+
+.modal-table th:first-child,
+.modal-table td:first-child,
+.data-table th:first-child,
+.data-table td:first-child {
+  text-align: left !important;
+}
+
+.modal-table th:last-child,
+.modal-table td:last-child,
+.data-table th:last-child,
+.data-table td:last-child {
+  text-align: left !important;
+}
+
+.modal-table .pill,
+.modal-table .statuspill,
+.data-table .pill,
+.data-table .statuspill {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.monitor-table th:nth-child(3),
+.monitor-table td:nth-child(3),
+.monitor-table th:nth-child(5),
+.monitor-table td:nth-child(5),
+.monitor-table th:nth-child(6),
+.monitor-table td:nth-child(6),
+.monitor-table th:nth-child(7),
+.monitor-table td:nth-child(7),
+.treatments-table th:nth-child(3),
+.treatments-table td:nth-child(3),
+.treatments-table th:nth-child(4),
+.treatments-table td:nth-child(4),
+.treatments-table th:nth-child(5),
+.treatments-table td:nth-child(5),
+.treatments-table th:nth-child(6),
+.treatments-table td:nth-child(6) {
+  text-align: center !important;
 }
