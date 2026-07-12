@@ -1394,3 +1394,96 @@ table td .textarea {
   min-width: 0 !important;
   max-width: 100% !important;
 }
+
+/* Modal sem barra horizontal de verdade: texto quebra dentro das colunas */
+.modal-backdrop {
+  padding: 8px !important;
+}
+
+.modal {
+  width: calc(100vw - 16px) !important;
+  max-width: 1280px !important;
+}
+
+.modal-body,
+.modal .table-wrap {
+  overflow-x: hidden !important;
+}
+
+.modal .table-wrap table,
+.modal-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.modal-table th,
+.modal-table td {
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.2 !important;
+  vertical-align: middle !important;
+  padding: 9px 7px !important;
+  font-size: 12px !important;
+}
+
+.modal-table th {
+  position: static !important;
+  font-size: 11px !important;
+}
+
+.modal-table td:first-child,
+.modal-table td:first-child b,
+.modal-table td:first-child strong {
+  white-space: normal !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  display: table-cell !important;
+}
+
+.modal-table td:first-child b,
+.modal-table td:first-child strong {
+  display: inline !important;
+}
+
+.modal-table .pill,
+.modal-table .statuspill {
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: anywhere !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 6px 8px !important;
+  line-height: 1.15 !important;
+}
+
+.modal-table .textarea {
+  min-height: 44px !important;
+  max-height: 86px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+}
+
+.modal-table th:nth-child(1),
+.modal-table td:nth-child(1) { width: 12% !important; }
+.modal-table th:nth-child(2),
+.modal-table td:nth-child(2) { width: 12% !important; }
+.modal-table th:nth-child(3),
+.modal-table td:nth-child(3) { width: 12% !important; }
+.modal-table th:nth-child(4),
+.modal-table td:nth-child(4) { width: 10% !important; }
+.modal-table th:nth-child(5),
+.modal-table td:nth-child(5) { width: 10% !important; }
+.modal-table th:nth-child(6),
+.modal-table td:nth-child(6) { width: 5% !important; }
+.modal-table th:nth-child(7),
+.modal-table td:nth-child(7) { width: 8% !important; }
+.modal-table th:nth-child(8),
+.modal-table td:nth-child(8) { width: 7% !important; }
+.modal-table th:nth-child(9),
+.modal-table td:nth-child(9) { width: 24% !important; }
