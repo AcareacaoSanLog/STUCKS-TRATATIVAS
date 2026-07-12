@@ -25,7 +25,7 @@ const FIELD_ALIASES={
  status_cep:['status cep','status_cep','tracking_status','status atualizado','status']
 };
 const REQUIRED=['shipment_id','tracking_status','ageing_last_status','cogs','buyer_city'];
-let state={view:'dashboard',rows:[],filtered:[],treatments:new Map(),damages:new Set(),cepMap:new Map(),history:[],filters:{status:'all',city:'all',driver:'all',ageing:'all',priority:'all',avaria:'all',cep:'all',search:''},monitor:{type:'received',city:'all',bairro:'all',days:'all',sort:'desc',search:''},currentFile:'',importedAt:null};
+let state={view:'dashboard',rows:[],filtered:[],treatments:new Map(),damages:new Set(),cepMap:new Map(),history:[],filters:{status:'all',statusGroup:'all',city:'all',driver:'all',ageing:'all',priority:'all',avaria:'all',cep:'all',search:''},monitor:{type:'received',city:'all',bairro:'all',days:'all',sort:'desc',search:''},currentFile:'',importedAt:null};
 const el={};
 let filterTimer=null, monitorTimer=null;
 
@@ -99,16 +99,25 @@ async function importStucks(raw,fileName){
 }
 function importCep(raw,fileName){
  if(!raw||raw.length<2) throw new Error('A planilha de CEP precisa ter cabeçalho e dados.');
- const headerIndex=findHeader(raw,['shipment_id','cep']); if(headerIndex<0) throw new Error('Não encontrei BR/shipment_id e CEP na planilha.');
- const headers=raw[headerIndex].map(clean); const map=buildMap(headers); let count=0;
- for(let i=headerIndex+1;i<raw.length;i++){const r=raw[i]||[]; const br=normalizeTrace(map.shipment_id!=null?r[map.shipment_id]:''); if(!br)continue; const item={cep:normalizeCep(map.cep!=null?r[map.cep]:''),bairro:clean(map.bairro!=null?r[map.bairro]:''),cidade:clean(map.cidade_cep!=null?r[map.cidade_cep]:''),status:clean(map.tracking_status!=null?r[map.tracking_status]:(map.status_cep!=null?r[map.status_cep]:''))}; state.cepMap.set(br,item); count++;}
- applyCep(); saveCep(); saveLocal(true); render(); setStatus('CEP importado: '+count+' BRs cruzadas. Status/CEP/bairro atualizados quando encontrados.','ok');
+ const headerIndex=findCepHeader(raw); if(headerIndex<0) throw new Error('Não encontrei CEP com BR, cidade ou bairro na planilha.');
+ const headers=raw[headerIndex].map(clean); const map=buildMap(headers); let byBr=0, byCep=0;
+ for(let i=headerIndex+1;i<raw.length;i++){
+  const r=raw[i]||[];
+  const br=normalizeTrace(map.shipment_id!=null?r[map.shipment_id]:'');
+  const cep=normalizeCep(map.cep!=null?r[map.cep]:'');
+  const item={cep,bairro:clean(map.bairro!=null?r[map.bairro]:''),cidade:cepCityValue(r,map),status:clean(map.tracking_status!=null?r[map.tracking_status]:(map.status_cep!=null?r[map.status_cep]:''))};
+  if(br){state.cepMap.set(br,{...item,tipo:'BR'}); byBr++;}
+  if(cep&&(item.bairro||item.cidade||item.status)){state.cepMap.set('CEP:'+cep,{...item,tipo:'CEP'}); byCep++;}
+ }
+ applyCep(); saveCep(); saveLocal(true); render(); setStatus('CEP importado: '+byBr+' BRs cruzadas e '+byCep+' CEPs/bairros mapeados. Cidades adjacentes atualizadas quando o CEP bater.','ok');
 }
+function findCepHeader(raw){for(let i=0;i<Math.min(raw.length,25);i++){const map=buildMap((raw[i]||[]).map(clean)); if(map.cep!=null&&(map.shipment_id!=null||map.bairro!=null||map.cidade_cep!=null||map.buyer_city!=null))return i;}return -1;}
 function findHeader(raw,fields){for(let i=0;i<Math.min(raw.length,25);i++){const headers=(raw[i]||[]).map(h=>normHeader(h)); const ok=fields.every(f=>FIELD_ALIASES[f].some(a=>headers.includes(normHeader(a)))); if(ok)return i;}return -1;}
 function buildMap(headers){const n=headers.map(normHeader), map={}; Object.keys(FIELD_ALIASES).forEach(f=>{for(const a of FIELD_ALIASES[f]){const idx=n.indexOf(normHeader(a)); if(idx>=0){map[f]=idx;break;}}}); return map;}
+function cepCityValue(r,map){return clean(map.cidade_cep!=null?r[map.cidade_cep]:(map.buyer_city!=null?r[map.buyer_city]:''));}
 function dedupe(rows){const m=new Map(); rows.forEach(r=>m.set(r.shipment_id,r)); return [...m.values()];}
 function enrich(r){r.city=clean(r.cidade_cep)||clean(r.buyer_city)||'Sem cidade'; r.bairro=r.bairro||'Sem bairro'; r.driver=clean(r.driver_name)||clean(r.driver_id)||'Sem driver'; r.priority=priority(r); r.status_key=statusKey(r.tracking_status); r.tratativa_display=displayTreatment(r);}
-function applyCep(){state.rows.forEach(r=>{const c=state.cepMap.get(r.shipment_id); if(c){if(c.cep)r.cep=c.cep; if(c.cidade)r.cidade_cep=c.cidade; if(c.bairro)r.bairro=c.bairro; if(c.status)r.tracking_status=c.status;} enrich(r);});}
+function applyCep(){state.rows.forEach(r=>{const direct=state.cepMap.get(r.shipment_id); if(direct&&direct.cep)r.cep=direct.cep; const byCep=r.cep?state.cepMap.get('CEP:'+normalizeCep(r.cep)):null; const c={cep:direct?.cep||byCep?.cep||'',cidade:direct?.cidade||byCep?.cidade||'',bairro:direct?.bairro||byCep?.bairro||'',status:direct?.status||byCep?.status||''}; if(c.cep||c.cidade||c.bairro||c.status){if(c.cep)r.cep=c.cep; if(c.cidade)r.cidade_cep=c.cidade; if(c.bairro)r.bairro=c.bairro; if(c.status)r.tracking_status=c.status;} enrich(r);});}
 function applyDamages(){state.rows.forEach(r=>{if(state.damages.has(r.shipment_id))r.avaria='Sim'; enrich(r);});}
 function applyTreatments(){state.rows.forEach(r=>{const t=state.treatments.get(r.shipment_id); if(t)r.tratativa=t; enrich(r);});}
 function displayTreatment(r){const t=clean(r.tratativa); if(t)return t; if(r.avaria==='Sim'||statusKey(r.tracking_status)==='avaria')return 'AVARIA'; return 'Sem tratativa';}
@@ -142,22 +151,22 @@ function renderDashboard(){
  const topCity=groupCount(rows,'city')[0]||['Aguardando dados',0];
 
  const statusDefs=[
-  ['total','📦 TOTAL DE STUCKS',total,'Dentro dos filtros atuais'],
-  ['onhold','⏸️ ONHOLD',countStatus(rows,'onhold'),pct(countStatus(rows,'onhold'),total)+' do total filtrado'],
-  ['received','📥 HUB_RECEIVED',countStatus(rows,'received'),pct(countStatus(rows,'received'),total)+' do total filtrado'],
-  ['assigned','📌 HUB_ASSIGNED',countStatus(rows,'assigned'),pct(countStatus(rows,'assigned'),total)+' do total filtrado'],
-  ['soclh','🚚 SOC_LHTRANSPORTED',countStatus(rows,'soclh'),pct(countStatus(rows,'soclh'),total)+' do total filtrado'],
-  ['intercepting','⛔ INTERCEPTING',countStatus(rows,'intercepting'),pct(countStatus(rows,'intercepting'),total)+' do total filtrado'],
-  ['packed','📦 HUB_PACKED',countStatus(rows,'packed'),pct(countStatus(rows,'packed'),total)+' do total filtrado'],
-  ['returnsoc','↩️ RETURN_SOC_RECEIVED',countStatus(rows,'returnsoc'),pct(countStatus(rows,'returnsoc'),total)+' do total filtrado'],
-  ['returnhub','🔁 RETURN_HUB_RECEIVED',countStatus(rows,'returnhub'),pct(countStatus(rows,'returnhub'),total)+' do total filtrado'],
-  ['avaria','⚠️ TOTAL DE AVARIAS',damaged,pct(damaged,total)+' com avaria']
+  ['total','📦 TOTAL DE STUCKS',total,'Dentro dos filtros atuais','all'],
+  ['onhold','⏸️ ONHOLD',countStatus(rows,'onhold'),pct(countStatus(rows,'onhold'),total)+' do total filtrado','onhold'],
+  ['received','📥 HUB_RECEIVED',countStatus(rows,'received'),pct(countStatus(rows,'received'),total)+' do total filtrado','received'],
+  ['assigned','📌 HUB_ASSIGNED',countStatus(rows,'assigned'),pct(countStatus(rows,'assigned'),total)+' do total filtrado','assigned'],
+  ['soclh','🚚 SOC_LHTRANSPORTED',countStatus(rows,'soclh'),pct(countStatus(rows,'soclh'),total)+' do total filtrado','soclh'],
+  ['intercepting','⛔ INTERCEPTING',countStatus(rows,'intercepting'),pct(countStatus(rows,'intercepting'),total)+' do total filtrado','intercepting'],
+  ['packed','📦 HUB_PACKED',countStatus(rows,'packed'),pct(countStatus(rows,'packed'),total)+' do total filtrado','packed'],
+  ['returnsoc','↩️ RETURN_SOC_RECEIVED',countStatus(rows,'returnsoc'),pct(countStatus(rows,'returnsoc'),total)+' do total filtrado','returnsoc'],
+  ['returnhub','🔁 RETURN_HUB_RECEIVED',countStatus(rows,'returnhub'),pct(countStatus(rows,'returnhub'),total)+' do total filtrado','returnhub'],
+  ['avaria','⚠️ TOTAL DE AVARIAS',damaged,pct(damaged,total)+' com avaria','avaria']
  ];
 
  el.content.innerHTML=
   filtersHtml()+
   quickFiltersHtml()+
-  `<div class="old-kpi-row">${statusDefs.map(k=>`<div class="old-kpi ${k[0]}"><h3>${k[1]}</h3><div class="old-kpi-number">${k[2]}</div><p>${k[3]}</p></div>`).join('')}</div>`+
+  `<div class="old-kpi-row">${statusDefs.map(k=>`<button type="button" class="old-kpi ${k[0]}" data-qf="${k[4]}"><h3>${k[1]}</h3><div class="old-kpi-number">${k[2]}</div><p>${k[3]}</p></button>`).join('')}</div>`+
   `<div class="old-main-grid">
     <section class="old-health-card">
       <div class="ring" style="--p:${total?pctNumber(critical,total):0}"><span>${pct(critical,total)}</span></div>
@@ -227,6 +236,7 @@ function bindDashboardQuickFilters(){
  document.querySelectorAll('[data-qf]').forEach(btn=>btn.addEventListener('click',()=>{
   const q=btn.dataset.qf;
   if(q==='all') resetFilters();
+  if(['onhold','received','assigned','soclh','intercepting','packed','returnsoc','returnhub'].includes(q)){state.filters.status='all'; state.filters.statusGroup=q;}
   if(q==='critical') state.filters.ageing='4+';
   if(q==='no-driver') state.filters.driver='Sem driver';
   if(q==='avaria') state.filters.avaria='Sim';
@@ -249,6 +259,7 @@ function attentionLine(title,desc,value){return `<div class="attention-line"><di
 function activeFilterTitle(){
  const parts=[];
  if(state.filters.status!=='all')parts.push('Status: '+state.filters.status);
+ if(state.filters.statusGroup&&state.filters.statusGroup!=='all')parts.push('Grupo: '+state.filters.statusGroup);
  if(state.filters.city!=='all')parts.push('Cidade: '+state.filters.city);
  if(state.filters.driver!=='all')parts.push('Driver: '+state.filters.driver);
  if(state.filters.ageing!=='all')parts.push('Dias: '+state.filters.ageing);
@@ -323,7 +334,7 @@ function renderStatus(){
 }
 
 function renderRanking(field,title){el.title.textContent=title; const rows=groupCount(state.rows,field); el.content.innerHTML=`<div class="panel"><h3>${esc(title)}</h3><div class="table-wrap">${simpleTable(rows,[title,'Qtd'])}</div></div>`;}
-function renderCeps(){el.title.textContent='🗺️ CEPs'; const rows=[...state.cepMap.entries()].map(([br,c])=>[br,c.cep||'-',c.cidade||'-',c.bairro||'-',c.status||'-']); el.content.innerHTML=`<div class="panel"><h3>CEPs importados</h3><div class="table-wrap">${simpleTable(rows,['BR','CEP','Cidade','Bairro','Status'])}</div></div>`;}
+function renderCeps(){el.title.textContent='🗺️ CEPs'; const rows=[...state.cepMap.entries()].map(([key,c])=>[key.startsWith('CEP:')?'CEP':'BR',key.replace(/^CEP:/,''),c.cep||'-',c.cidade||'-',c.bairro||'-',c.status||'-']); el.content.innerHTML=`<div class="panel"><h3>CEPs importados</h3><p class="tabs-note">Aceita planilha por BR ou uma base de CEP com cidade e bairro para preencher cidades adjacentes.</p><div class="table-wrap">${simpleTable(rows,['Tipo','Chave','CEP','Cidade','Bairro','Status'])}</div></div>`;}
 function renderHistory(){el.title.textContent='🕓 Histórico'; el.content.innerHTML=`<div class="panel"><h3>Histórico de importações</h3><div class="table-wrap">${simpleTable(state.history.map(h=>[formatDate(h.at),h.file,h.count]),['Data','Arquivo','Qtd'])}</div></div>`;}
 
 function filtersHtml(){const rows=state.rows; return `<div class="filters old-filters">
@@ -337,12 +348,13 @@ function filtersHtml(){const rows=state.rows; return `<div class="filters old-fi
 <label>Buscar<input id="fSearch" value="${esc(state.filters.search)}" placeholder="BR, cidade, status..."></label>
 </div>`;}
 function bindFilterInputs(){['fStatus','fCity','fDriver','fAge','fPriority','fAvaria','fCep','fSearch'].forEach(id=>{const x=document.getElementById(id); if(!x)return; x.addEventListener(id==='fSearch'?'input':'change',()=>{readFilters(); if(id==='fSearch') scheduleFilterRender(); else renderFilteredView();});});}
-function readFilters(){state.filters.status=document.getElementById('fStatus')?.value||'all'; state.filters.city=document.getElementById('fCity')?.value||'all'; state.filters.driver=document.getElementById('fDriver')?.value||'all'; state.filters.ageing=document.getElementById('fAge')?.value||'all'; state.filters.priority=document.getElementById('fPriority')?.value||'all'; state.filters.avaria=document.getElementById('fAvaria')?.value||'all'; state.filters.cep=document.getElementById('fCep')?.value||'all'; state.filters.search=document.getElementById('fSearch')?.value||'';}
+function readFilters(){state.filters.status=document.getElementById('fStatus')?.value||'all'; state.filters.statusGroup='all'; state.filters.city=document.getElementById('fCity')?.value||'all'; state.filters.driver=document.getElementById('fDriver')?.value||'all'; state.filters.ageing=document.getElementById('fAge')?.value||'all'; state.filters.priority=document.getElementById('fPriority')?.value||'all'; state.filters.avaria=document.getElementById('fAvaria')?.value||'all'; state.filters.cep=document.getElementById('fCep')?.value||'all'; state.filters.search=document.getElementById('fSearch')?.value||'';}
 function renderFilteredView(){state.view==='dashboard'?renderDashboard():renderBase();}
 function scheduleFilterRender(){const input=document.getElementById('fSearch'), pos=input&&typeof input.selectionStart==='number'?input.selectionStart:null; clearTimeout(filterTimer); filterTimer=setTimeout(()=>{renderFilteredView(); restoreInputFocus('fSearch',pos);},180);}
 function restoreInputFocus(id,pos){const input=document.getElementById(id); if(!input)return; input.focus(); if(pos!=null&&input.setSelectionRange){const p=Math.min(pos,input.value.length); input.setSelectionRange(p,p);}}
 function filteredRows(){return state.rows.filter(r=>
  (state.filters.status==='all'||r.tracking_status===state.filters.status)&&
+ (!state.filters.statusGroup||state.filters.statusGroup==='all'||statusKey(r.tracking_status)===state.filters.statusGroup)&&
  (state.filters.city==='all'||r.city===state.filters.city)&&
  (state.filters.driver==='all'||r.driver===state.filters.driver)&&
  (state.filters.ageing==='all'||(state.filters.ageing==='4+'?r.ageing_num>=4:ageValue(r)===state.filters.ageing))&&
@@ -351,7 +363,7 @@ function filteredRows(){return state.rows.filter(r=>
  (state.filters.cep==='all'||(state.filters.cep==='with'?!!r.cep:(state.filters.cep==='without'?!r.cep:(state.filters.cep==='bairro'&&r.bairro&&r.bairro!=='Sem bairro'))))&&
  (!state.filters.search||normSearch(Object.values(r).join(' ')).includes(normSearch(state.filters.search)))
 );}
-function resetFilters(){state.filters={status:'all',city:'all',driver:'all',ageing:'all',priority:'all',avaria:'all',cep:'all',search:''};}
+function resetFilters(){state.filters={status:'all',statusGroup:'all',city:'all',driver:'all',ageing:'all',priority:'all',avaria:'all',cep:'all',search:''};}
 function currentRowsForExport(){if(state.view==='base')return filteredRows(); if(state.view.startsWith('monitor-'))return state.rows.filter(r=>monitorMatch(r,state.monitor.type)); return state.rows;}
 
 async function loadTreatmentsFromCloud(silent){try{const rows=await supabase('stucks_tratativas?select=shipment_id,tratativa,tracking_status,cidade,bairro,driver,ageing_last_status,avaria,updated_at&order=updated_at.desc&limit=10000'); let count=0, cloud=new Map(); (rows||[]).forEach(r=>{const br=normalizeTrace(r.shipment_id),t=clean(r.tratativa); if(br&&t){cloud.set(br,t);count++;}}); state.treatments=cloud; state.rows.forEach(r=>{if(!cloud.has(r.shipment_id))r.tratativa='';}); applyTreatments(); saveLocal(true); renderBadges(); if(state.rows.length) render(); if(!silent)setStatus('Tratativas importadas da nuvem: '+count+' BR(s). Agora importe a STUCKS para cruzar pela BR.','ok'); return count;}catch(err){console.error(err); if(!silent)setStatus('Erro ao puxar Supabase: '+(err.message||err),'error'); return 0;}}
