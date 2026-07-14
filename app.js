@@ -32,6 +32,7 @@ let state={view:'dashboard',rows:[],filtered:[],treatments:new Map(),damages:new
 const el={};
 let filterTimer=null, monitorTimer=null;
 const authClient=window.supabase?.createClient?.(AUTH_SUPABASE_URL,AUTH_SUPABASE_KEY)||null;
+const AUTH_TRUST_KEY='stucks_login_autorizado_v1';
 let currentSession=null, appStarted=false, authEventsBound=false, manualAuthUnlock=false;
 
 document.addEventListener('DOMContentLoaded',initAuth);
@@ -77,7 +78,7 @@ async function verifyAllowedUser(session){
 async function applySession(session){
  currentSession=session||null;
  if(!session){setAuthUi(null); return;}
- if(!manualAuthUnlock){
+ if(!manualAuthUnlock&&localStorage.getItem(AUTH_TRUST_KEY)!=='1'){
   currentSession=null;
   setAuthUi(null);
   return;
@@ -105,6 +106,7 @@ async function handleAuthSubmit(event){
  const {data,error}=await authClient.auth.signInWithPassword({email,password});
  if(error){console.warn('handleAuthSubmit',error); setAuthMessage('Login inválido ou usuário sem acesso.'); return;}
  manualAuthUnlock=true;
+ localStorage.setItem(AUTH_TRUST_KEY,'1');
  await applySession(data.session);
 }
 async function handleLogout(event){
@@ -112,6 +114,7 @@ async function handleLogout(event){
  await authClient?.auth.signOut();
  currentSession=null;
  manualAuthUnlock=false;
+ localStorage.removeItem(AUTH_TRUST_KEY);
  state.rows=[]; state.filtered=[]; state.currentFile=''; state.importedAt=null;
  if(el.content)el.content.innerHTML='';
  if(el.status)setStatus('Sessão encerrada. Entre novamente para visualizar o dashboard.','warn');
@@ -123,10 +126,15 @@ async function initAuth(){
  bindAuthEvents();
  setAuthUi(null);
  if(!authClient){setAuthMessage('Não foi possível carregar o login. Verifique a internet e recarregue.'); return;}
- try{await authClient.auth.signOut({scope:'local'});}catch(err){console.warn('initAuth signOut',err);}
  authClient.auth.onAuthStateChange((_event,session)=>applySession(session));
- setAuthUi(null);
- setAuthMessage('');
+ if(localStorage.getItem(AUTH_TRUST_KEY)==='1'){
+  const {data,error}=await authClient.auth.getSession();
+  if(error)console.warn('initAuth',error);
+  await applySession(data?.session||null);
+ } else {
+  setAuthUi(null);
+  setAuthMessage('');
+ }
 }
 function onClick(e){
  const b=e.target.closest('button,[data-view],[data-action]'); if(!b)return;
