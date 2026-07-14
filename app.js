@@ -4,6 +4,9 @@
 const SUPABASE_URL='https://xknmhvfueczezhdnqkgq.supabase.co';
 const SUPABASE_KEY='sb_publishable_xBwEOwAWLcopYi7akl-fVA_pOf7yFbJ';
 const SUPABASE_TABLE='stucks_tratativas';
+const AUTH_SUPABASE_URL='https://ionlbxgwaqyracpztoiv.supabase.co';
+const AUTH_SUPABASE_KEY='sb_publishable_5W-VMD2kk7OmRP1vpEYJ4g_TZCUB93g';
+const DEFAULT_AUTH_EMAIL='torrede.controle_txf@sanlog.com';
 const STORE='stucks_clean_dashboard_v1';
 const STORE_CEP='stucks_clean_cep_v1';
 const STORE_DAMAGES='stucks_clean_damages_v1';
@@ -28,20 +31,95 @@ const REQUIRED=['shipment_id','tracking_status','ageing_last_status','cogs','buy
 let state={view:'dashboard',rows:[],filtered:[],treatments:new Map(),damages:new Set(),cepMap:new Map(),history:[],filters:{status:'all',statusGroup:'all',city:'all',driver:'all',ageing:'all',priority:'all',avaria:'all',cep:'all',search:''},monitor:{type:'received',city:'all',bairro:'all',days:'all',sort:'desc',search:''},currentFile:'',importedAt:null};
 const el={};
 let filterTimer=null, monitorTimer=null;
+const authClient=window.supabase?.createClient?.(AUTH_SUPABASE_URL,AUTH_SUPABASE_KEY)||null;
+let currentSession=null, appStarted=false, authEventsBound=false;
 
-document.addEventListener('DOMContentLoaded',boot);
+document.addEventListener('DOMContentLoaded',initAuth);
 
 function boot(){
+ if(appStarted)return;
+ appStarted=true;
  try{
   cache(); bind(); loadLocalState(); render(); loadTreatmentsFromCloud(true);
   setStatus('Dashboard carregado. Importe a STUCKS do dia. Tratativas ficam na nuvem e são aplicadas pela BR.','warn');
  }catch(err){console.error(err); emergency('Erro crítico ao iniciar: '+(err.message||err));}
 }
-function cache(){['nav','title','content','status','fileInput','cepInput','importStucksBtn','importCepBtn','saveLocalBtn','loadLocalBtn','clearBtn','exportBtn','rowCount','lastUpdate','baseBadge','damageBadge','treatmentBadge','historyBadge','modalRoot'].forEach(id=>el[id]=document.getElementById(id));}
+function cache(){['nav','title','content','status','fileInput','cepInput','importStucksBtn','importCepBtn','saveLocalBtn','loadLocalBtn','clearBtn','exportBtn','logoutBtn','rowCount','lastUpdate','baseBadge','damageBadge','treatmentBadge','historyBadge','modalRoot','loginScreen','loginForm','loginEmail','loginPassword','loginMessage'].forEach(id=>el[id]=document.getElementById(id));}
 function bind(){
  document.addEventListener('click',onClick,true);
  el.fileInput.addEventListener('change',e=>handleFile(e,'stucks'));
  el.cepInput.addEventListener('change',e=>handleFile(e,'cep'));
+}
+function bindAuthEvents(){
+ if(authEventsBound)return;
+ authEventsBound=true;
+ if(el.loginForm)el.loginForm.addEventListener('submit',handleAuthSubmit);
+ if(el.logoutBtn)el.logoutBtn.addEventListener('click',handleLogout);
+}
+function setAuthMessage(message,type=''){
+ if(!el.loginMessage)return;
+ el.loginMessage.textContent=message;
+ el.loginMessage.className='login-message'+(type?` ${type}`:'');
+}
+function setAuthUi(session){
+ document.body.classList.toggle('auth-locked',!session);
+ if(el.loginScreen)el.loginScreen.hidden=Boolean(session);
+ if(el.loginEmail&&!el.loginEmail.value)el.loginEmail.value=DEFAULT_AUTH_EMAIL;
+ if(el.loginPassword&&!session)el.loginPassword.value='';
+}
+async function verifyAllowedUser(session){
+ const email=session?.user?.email?.toLowerCase();
+ if(!email||!authClient)return false;
+ const {data,error}=await authClient.from('dashboard_allowed_users').select('email').eq('email',email).maybeSingle();
+ if(error){console.warn('verifyAllowedUser',error); return false;}
+ return Boolean(data);
+}
+async function applySession(session){
+ currentSession=session||null;
+ if(!session){setAuthUi(null); return;}
+ setAuthMessage('Validando acesso...');
+ const allowed=await verifyAllowedUser(session);
+ if(!allowed){
+  await authClient.auth.signOut();
+  currentSession=null;
+  setAuthUi(null);
+  setAuthMessage('Usuário sem permissão. Libere este e-mail no Supabase.');
+  return;
+ }
+ setAuthUi(session);
+ setAuthMessage('Acesso liberado.','ok');
+ boot();
+}
+async function handleAuthSubmit(event){
+ event.preventDefault();
+ if(!authClient){setAuthMessage('Não foi possível carregar o login. Verifique a internet e recarregue.'); return;}
+ const email=clean(el.loginEmail?.value).toLowerCase();
+ const password=el.loginPassword?.value||'';
+ if(!email||!password){setAuthMessage('Informe e-mail e senha.'); return;}
+ setAuthMessage('Entrando...');
+ const {data,error}=await authClient.auth.signInWithPassword({email,password});
+ if(error){console.warn('handleAuthSubmit',error); setAuthMessage('Login inválido ou usuário sem acesso.'); return;}
+ await applySession(data.session);
+}
+async function handleLogout(event){
+ if(event)event.preventDefault();
+ await authClient?.auth.signOut();
+ currentSession=null;
+ state.rows=[]; state.filtered=[]; state.currentFile=''; state.importedAt=null;
+ if(el.content)el.content.innerHTML='';
+ if(el.status)setStatus('Sessão encerrada. Entre novamente para visualizar o dashboard.','warn');
+ setAuthUi(null);
+ setAuthMessage('Sessão encerrada.');
+}
+async function initAuth(){
+ cache();
+ bindAuthEvents();
+ setAuthUi(null);
+ if(!authClient){setAuthMessage('Não foi possível carregar o login. Verifique a internet e recarregue.'); return;}
+ const {data,error}=await authClient.auth.getSession();
+ if(error)console.warn('initAuth',error);
+ authClient.auth.onAuthStateChange((_event,session)=>applySession(session));
+ await applySession(data?.session||null);
 }
 function onClick(e){
  const b=e.target.closest('button,[data-view],[data-action]'); if(!b)return;

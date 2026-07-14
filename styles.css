@@ -21,6 +21,18 @@
 html,body{margin:0;min-height:100%;background:#02080f;color:var(--text);font-family:Inter,Arial,sans-serif;font-size:14px}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
+body.auth-locked .app{display:none}
+.login-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,rgba(4,17,29,.96),rgba(8,38,61,.95)),#04111d}
+.login-screen[hidden],[hidden]{display:none!important}
+.login-card{width:min(430px,100%);border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#09263d,#062033);box-shadow:0 24px 80px rgba(0,0,0,.34);padding:28px;display:grid;gap:14px}
+.login-brand{color:#ff3d25;font-size:18px;font-style:italic;font-weight:1000}
+.login-card h1{margin:0;font-size:25px;line-height:1.15}
+.login-card p{margin:0;color:var(--muted);line-height:1.45}
+.login-card label{display:grid;gap:6px;color:#b7d6ed;font-size:12px;font-weight:1000;text-transform:uppercase}
+.login-card input{width:100%;border:1px solid var(--line);border-radius:9px;background:#061522;color:#fff;padding:11px}
+.login-card button{border:1px solid var(--blue);border-radius:9px;background:linear-gradient(135deg,#1685ff,#1e7fff);color:#fff;min-height:42px;padding:9px 14px;font-weight:1000}
+.login-message{min-height:18px;color:#ff8c95;font-size:13px;font-weight:800}
+.login-message.ok{color:#00ff96}
 .app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
 .sidebar{background:linear-gradient(180deg,#092139,#061321);border-right:1px solid #123856;padding:18px 12px;position:sticky;top:0;height:100vh;overflow:auto}
 .brand{padding:8px 6px 24px}

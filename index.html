@@ -6,7 +6,24 @@
   <title>Dashboard Stucks</title>
   <link rel="stylesheet" href="styles.css?v=monitor-isolado-20260712">
 </head>
-<body>
+<body class="auth-locked">
+  <section class="login-screen" id="loginScreen" aria-label="Acesso ao dashboard">
+    <form class="login-card" id="loginForm">
+      <div class="login-brand">SANLOG</div>
+      <h1>Entrar no dashboard</h1>
+      <p>Use o acesso operacional autorizado para visualizar os dados da Torre STUCKS.</p>
+      <label>
+        <span>E-mail</span>
+        <input id="loginEmail" type="email" autocomplete="username" required>
+      </label>
+      <label>
+        <span>Senha</span>
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </label>
+      <div class="login-message" id="loginMessage" aria-live="polite"></div>
+      <button class="primary" type="submit">Entrar</button>
+    </form>
+  </section>
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
@@ -44,9 +61,10 @@
           <button id="saveLocalBtn" title="Salvar base local">💾</button>
           <button id="loadLocalBtn" title="Carregar base local">🗄️</button>
           <button id="clearBtn" title="Limpar base">🗑️</button>
-          <button id="exportBtn" title="Exportar visão">⬇️</button>
-          <button id="importStucksBtn" class="primary">☁️ Importar STUCKS</button>
-          <button id="importCepBtn">📍 Importar CEP</button>
+        <button id="exportBtn" title="Exportar visão">⬇️</button>
+        <button id="importStucksBtn" class="primary">☁️ Importar STUCKS</button>
+        <button id="importCepBtn">📍 Importar CEP</button>
+        <button id="logoutBtn" title="Sair">Sair</button>
         </div>
       </header>
 
@@ -59,6 +77,7 @@
 
   <div id="modalRoot"></div>
   <script src="vendor/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js?v=monitor-isolado-20260712"></script>
 </body>
 </html>
