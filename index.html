@@ -4,7 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard Stucks</title>
-  <link rel="stylesheet" href="styles.css?v=login-supabase-20260714">
+  <style>
+    body.auth-locked .app{display:none!important}
+    .login-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,rgba(4,17,29,.96),rgba(8,38,61,.95)),#04111d;color:#f4fbff;font-family:Inter,Arial,sans-serif}
+    .login-screen[hidden],[hidden]{display:none!important}
+    .login-card{width:min(430px,100%);border:1px solid #155077;border-radius:14px;background:linear-gradient(180deg,#09263d,#062033);box-shadow:0 24px 80px rgba(0,0,0,.34);padding:28px;display:grid;gap:14px}
+    .login-brand{color:#ff3d25;font-size:18px;font-style:italic;font-weight:1000}
+    .login-card h1{margin:0;font-size:25px;line-height:1.15}
+    .login-card p{margin:0;color:#9fc5dd;line-height:1.45}
+    .login-card label{display:grid;gap:6px;color:#b7d6ed;font-size:12px;font-weight:1000;text-transform:uppercase}
+    .login-card input{width:100%;border:1px solid #155077;border-radius:9px;background:#061522;color:#fff;padding:11px;box-sizing:border-box}
+    .login-card button{border:1px solid #1685ff;border-radius:9px;background:linear-gradient(135deg,#1685ff,#1e7fff);color:#fff;min-height:42px;padding:9px 14px;font-weight:1000;cursor:pointer}
+    .login-message{min-height:18px;color:#ff8c95;font-size:13px;font-weight:800}
+    .login-message.ok{color:#00ff96}
+  </style>
+  <link rel="stylesheet" href="styles.css?v=login-100-20260714">
 </head>
 <body class="auth-locked">
   <section class="login-screen" id="loginScreen" aria-label="Acesso ao dashboard">
@@ -78,6 +92,6 @@
   <div id="modalRoot"></div>
   <script src="vendor/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=login-supabase-20260714"></script>
+  <script src="app.js?v=login-100-20260714"></script>
 </body>
 </html>
