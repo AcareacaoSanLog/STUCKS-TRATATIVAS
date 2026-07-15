@@ -349,13 +349,17 @@ function bindDashboardQuickFilters(){
 function countStatus(rows,key){return rows.filter(r=>statusKey(r.tracking_status)===key).length;}
 function pctNumber(v,t){return t?Math.round(v/t*100):0;}
 function attentionLine(title,desc,value){return `<div class="attention-line"><div><b>${esc(title)}</b><span>${esc(desc)}</span></div><strong>${esc(value)}</strong></div>`;}
+function ageFilterValues(){const v=state.filters.ageing; return Array.isArray(v)?v:(v&&v!=='all'?[v]:[]);}
+function ageFilterLabel(){const vals=ageFilterValues(); if(!vals.length)return 'Todos'; if(vals.length===1&&vals[0]==='4+')return 'Críticos 4+'; if(vals.length<=3)return vals.map(v=>v==='Sem dias'||v==='4+'?v:v+' dias').join(', '); return vals.length+' dias selecionados';}
+function isAgeSelected(value){return ageFilterValues().includes(String(value));}
+function matchesAgeFilter(row){const vals=ageFilterValues(); if(!vals.length)return true; return vals.some(v=>v==='4+'?row.ageing_num>=4:ageValue(row)===v);}
 function activeFilterTitle(){
  const parts=[];
  if(state.filters.status!=='all')parts.push('Status: '+state.filters.status);
  if(state.filters.statusGroup&&state.filters.statusGroup!=='all')parts.push('Grupo: '+state.filters.statusGroup);
  if(state.filters.city!=='all')parts.push('Cidade: '+state.filters.city);
  if(state.filters.driver!=='all')parts.push('Driver: '+state.filters.driver);
- if(state.filters.ageing!=='all')parts.push('Dias: '+state.filters.ageing);
+ if(ageFilterValues().length)parts.push('Dias: '+ageFilterLabel());
  if(state.filters.avaria!=='all')parts.push('Avaria: '+state.filters.avaria);
  if(state.filters.cep!=='all')parts.push('CEP: '+state.filters.cep);
  if(state.filters.search)parts.push('Busca: '+state.filters.search);
@@ -431,18 +435,20 @@ function renderRanking(field,title){el.title.textContent=title; const rows=group
 function renderCeps(){el.title.textContent='🗺️ CEPs'; const rows=[...state.cepMap.entries()].map(([key,c])=>[key.startsWith('CEP:')?'CEP':'BR',key.replace(/^CEP:/,''),c.cep||'-',c.cidade||'-',c.bairro||'-',c.status||'-']); el.content.innerHTML=`<div class="panel"><h3>CEPs importados</h3><p class="tabs-note">Aceita planilha por BR ou uma base de CEP com cidade e bairro para preencher cidades adjacentes.</p><div class="table-wrap">${simpleTable(rows,['Tipo','Chave','CEP','Cidade','Bairro','Status'])}</div></div>`;}
 function renderHistory(){el.title.textContent='🕓 Histórico'; const rows=treatmentRows(); el.content.innerHTML=`<div class="panel"><h3>Histórico de tratativas preenchidas</h3><p class="tabs-note">Mostra as BRs que possuem tratativa salva localmente ou importada da nuvem.</p><div class="table-wrap">${simpleTable(rows.map(r=>[r.shipment_id,r.tratativa,r.status||'-',r.city||'-',r.bairro||'-',r.driver||'-',r.ageing==null?'-':r.ageing+' dias',r.avaria||'-',r.found?'Sim':'Não']),['BR','Tratativa','Status','Cidade','Bairro','Driver','Dias','Avaria','Na base'])}</div></div>`;}
 
-function filtersHtml(){const rows=state.rows; return `<div class="filters old-filters">
+function filtersHtml(){const rows=state.rows; const ageDays=unique(rows.map(ageValue),true); const ageChecks=ageDays.map(day=>`<label class="multi-option"><input type="checkbox" class="fAgeCheck" value="${esc(day)}" ${isAgeSelected(day)?'checked':''}><span>${esc(day==='Sem dias'?day:day+' dias')}</span></label>`).join(''); return `<div class="filters old-filters">
 <label>Status<select id="fStatus"><option value="all">Todos</option>${opts(unique(rows.map(r=>r.tracking_status)),state.filters.status)}</select></label>
 <label>Cidade<select id="fCity"><option value="all">Todas</option>${opts(unique(rows.map(r=>r.city)),state.filters.city)}</select></label>
 <label>Driver<select id="fDriver"><option value="all">Todos</option>${opts(unique(rows.map(r=>r.driver)),state.filters.driver)}</select></label>
+<div class="field multi-field"><span>Dias parados</span><div class="multi-select" id="fAgeMulti"><button class="multi-select-button" id="fAgeButton" type="button" aria-expanded="false">${esc(ageFilterLabel())}</button><div class="multi-select-menu" id="fAgeMenu"><label class="multi-option"><input type="checkbox" id="fAgeAll" value="all" ${ageFilterValues().length?'':'checked'}><span>Todos</span></label>${ageChecks}</div></div></div>
 <label>Dias parados<select id="fAge"><option value="all">Todos</option><option value="4+" ${state.filters.ageing==='4+'?'selected':''}>Críticos 4+</option>${opts(unique(rows.map(ageValue),true),state.filters.ageing)}</select></label>
 <label>Prioridade<select id="fPriority"><option value="all">Todas</option>${opts(unique(rows.map(r=>r.priority)),state.filters.priority)}</select></label>
 <label>Avaria<select id="fAvaria"><option value="all">Todas</option><option value="Sim" ${state.filters.avaria==='Sim'?'selected':''}>Sim</option><option value="Não" ${state.filters.avaria==='Não'?'selected':''}>Não</option></select></label>
 <label>CEP<select id="fCep"><option value="all">Todos</option><option value="with" ${state.filters.cep==='with'?'selected':''}>Com CEP</option><option value="bairro" ${state.filters.cep==='bairro'?'selected':''}>Com bairro</option><option value="without" ${state.filters.cep==='without'?'selected':''}>Sem CEP</option></select></label>
 <label>Buscar<input id="fSearch" value="${esc(state.filters.search)}" placeholder="BR, cidade, status..."></label>
 </div>`;}
-function bindFilterInputs(){['fStatus','fCity','fDriver','fAge','fPriority','fAvaria','fCep','fSearch'].forEach(id=>{const x=document.getElementById(id); if(!x)return; x.addEventListener(id==='fSearch'?'input':'change',()=>{readFilters(); if(id==='fSearch') scheduleFilterRender(); else renderFilteredView();});});}
-function readFilters(){state.filters.status=document.getElementById('fStatus')?.value||'all'; state.filters.statusGroup='all'; state.filters.city=document.getElementById('fCity')?.value||'all'; state.filters.driver=document.getElementById('fDriver')?.value||'all'; state.filters.ageing=document.getElementById('fAge')?.value||'all'; state.filters.priority=document.getElementById('fPriority')?.value||'all'; state.filters.avaria=document.getElementById('fAvaria')?.value||'all'; state.filters.cep=document.getElementById('fCep')?.value||'all'; state.filters.search=document.getElementById('fSearch')?.value||'';}
+function bindFilterInputs(){['fStatus','fCity','fDriver','fPriority','fAvaria','fCep','fSearch'].forEach(id=>{const x=document.getElementById(id); if(!x)return; x.addEventListener(id==='fSearch'?'input':'change',()=>{readFilters(); if(id==='fSearch') scheduleFilterRender(); else renderFilteredView();});}); bindAgeFilterInputs();}
+function bindAgeFilterInputs(){const btn=document.getElementById('fAgeButton'), menu=document.getElementById('fAgeMenu'), all=document.getElementById('fAgeAll'); if(btn&&menu)btn.addEventListener('click',()=>{const open=!menu.classList.contains('open'); menu.classList.toggle('open',open); btn.setAttribute('aria-expanded',open?'true':'false');}); if(all)all.addEventListener('change',()=>{if(all.checked)document.querySelectorAll('.fAgeCheck').forEach(c=>c.checked=false); readFilters(); renderFilteredView();}); document.querySelectorAll('.fAgeCheck').forEach(c=>c.addEventListener('change',()=>{if(c.checked&&all)all.checked=false; const checked=[...document.querySelectorAll('.fAgeCheck:checked')]; if(!checked.length&&all)all.checked=true; readFilters(); renderFilteredView();}));}
+function readFilters(){state.filters.status=document.getElementById('fStatus')?.value||'all'; state.filters.statusGroup='all'; state.filters.city=document.getElementById('fCity')?.value||'all'; state.filters.driver=document.getElementById('fDriver')?.value||'all'; const checked=[...document.querySelectorAll('.fAgeCheck:checked')].map(x=>x.value), allChecked=document.getElementById('fAgeAll')?.checked, legacyAge=document.getElementById('fAge')?.value||'all'; state.filters.ageing=allChecked?'all':(checked.length?checked:(legacyAge!=='all'?legacyAge:'all')); state.filters.priority=document.getElementById('fPriority')?.value||'all'; state.filters.avaria=document.getElementById('fAvaria')?.value||'all'; state.filters.cep=document.getElementById('fCep')?.value||'all'; state.filters.search=document.getElementById('fSearch')?.value||'';}
 function renderFilteredView(){state.view==='dashboard'?renderDashboard():renderBase();}
 function scheduleFilterRender(){const input=document.getElementById('fSearch'), pos=input&&typeof input.selectionStart==='number'?input.selectionStart:null; clearTimeout(filterTimer); filterTimer=setTimeout(()=>{renderFilteredView(); restoreInputFocus('fSearch',pos);},180);}
 function restoreInputFocus(id,pos){const input=document.getElementById(id); if(!input)return; input.focus(); if(pos!=null&&input.setSelectionRange){const p=Math.min(pos,input.value.length); input.setSelectionRange(p,p);}}
@@ -451,7 +457,7 @@ function filteredRows(){return state.rows.filter(r=>
  (!state.filters.statusGroup||state.filters.statusGroup==='all'||statusKey(r.tracking_status)===state.filters.statusGroup)&&
  (state.filters.city==='all'||r.city===state.filters.city)&&
  (state.filters.driver==='all'||r.driver===state.filters.driver)&&
- (state.filters.ageing==='all'||(state.filters.ageing==='4+'?r.ageing_num>=4:ageValue(r)===state.filters.ageing))&&
+ matchesAgeFilter(r)&&
  (state.filters.priority==='all'||r.priority===state.filters.priority)&&
  (state.filters.avaria==='all'||r.avaria===state.filters.avaria)&&
  (state.filters.cep==='all'||(state.filters.cep==='with'?!!r.cep:(state.filters.cep==='without'?!r.cep:(state.filters.cep==='bairro'&&r.bairro&&r.bairro!=='Sem bairro'))))&&

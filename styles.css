@@ -66,7 +66,18 @@ body.auth-locked .app{display:none}
 .grid{display:grid;gap:12px}
 .old-filters{display:grid;grid-template-columns:repeat(8,minmax(120px,1fr));gap:10px;margin-bottom:8px;border:1px solid var(--line);border-radius:14px;background:rgba(8,38,61,.82);padding:14px}
 .filters label{display:grid;gap:5px;color:#b7d6ed;font-weight:1000;font-size:12px;text-transform:uppercase}
+.filters .field{display:grid;gap:5px;color:#b7d6ed;font-weight:1000;font-size:12px;text-transform:uppercase}
 .filters select,.filters input,.filters textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:#061522;color:#fff;padding:9px}
+.filters label:has(#fAge){display:none}
+.multi-field{position:relative}
+.multi-select{position:relative;width:100%}
+.multi-select-button{width:100%;min-height:38px;border:1px solid var(--line);border-radius:8px;background:#061522;color:#fff;padding:9px 34px 9px 10px;text-align:left;font-weight:800;line-height:1.2}
+.multi-select-button:after{content:"⌄";position:absolute;right:11px;top:50%;transform:translateY(-52%);color:var(--muted);font-size:15px}
+.multi-select-menu{display:none;position:absolute;z-index:50;left:0;right:0;top:calc(100% + 4px);max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:#061522;box-shadow:0 18px 45px rgba(0,0,0,.42);padding:6px}
+.multi-select-menu.open{display:grid}
+.multi-option{display:flex!important;grid-template-columns:none!important;align-items:center;gap:8px!important;min-height:30px;padding:6px 8px;border-radius:7px;color:#fff!important;text-transform:none!important;font-size:13px!important;font-weight:800!important;cursor:pointer}
+.multi-option:hover{background:#0d3150}
+.multi-option input{width:16px!important;height:16px;margin:0;accent-color:var(--blue);flex:0 0 auto}
 .quick-row{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px;padding:0 4px}
 .old-kpi-row{display:grid;grid-template-columns:repeat(10,minmax(140px,1fr));gap:10px;margin-bottom:12px}
 .old-kpi{min-height:106px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(135deg,#08253b,#061a2b);padding:14px;position:relative;overflow:hidden}
