@@ -18,7 +18,7 @@
     .login-message{min-height:18px;color:#ff8c95;font-size:13px;font-weight:800}
     .login-message.ok{color:#00ff96}
   </style>
-  <link rel="stylesheet" href="styles.css?v=monitor-dias-ordenado-20260803">
+  <link rel="stylesheet" href="styles.css?v=cloud-base-supabase-20260811">
 </head>
 <body class="auth-locked">
   <section class="login-screen" id="loginScreen" aria-label="Acesso ao dashboard">
@@ -72,7 +72,7 @@
       <header class="topbar">
         <div><p>OPERAÇÃO TXF</p><h2 id="title">🏠 Dashboard Stucks</h2></div>
         <div class="actions">
-          <button id="saveLocalBtn" title="Salvar base local">💾</button>
+          <button id="saveLocalBtn" title="Salvar base na nuvem">💾</button>
           <button id="loadLocalBtn" title="Carregar base local">🗄️</button>
           <button id="clearBtn" title="Limpar base">🗑️</button>
         <button id="exportBtn" title="Exportar visão">⬇️</button>
@@ -84,7 +84,7 @@
 
       <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.tsv" hidden>
       <input id="cepInput" type="file" accept=".xlsx,.xls,.csv,.tsv" hidden>
-      <div id="status" class="status warn">Importe a planilha STUCKS do dia. As tratativas ficam salvas no Supabase e são aplicadas pela BR.</div>
+      <div id="status" class="status warn">Carregando base salva na nuvem ou importe a planilha STUCKS do dia.</div>
       <section id="content"></section>
     </main>
   </div>
@@ -92,6 +92,6 @@
   <div id="modalRoot"></div>
   <script src="vendor/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=monitor-dias-ordenado-20260803"></script>
+  <script src="app.js?v=cloud-base-supabase-20260811"></script>
 </body>
 </html>
