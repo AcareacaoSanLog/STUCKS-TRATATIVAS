@@ -14,10 +14,18 @@ create table if not exists public.stucks_cloud_state (
 
 alter table public.stucks_cloud_state enable row level security;
 
-grant select, insert, update on public.stucks_cloud_state to authenticated;
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on public.stucks_cloud_state to anon, authenticated;
 
 create index if not exists stucks_cloud_state_updated_at_idx
   on public.stucks_cloud_state (updated_at desc);
+
+drop policy if exists "Allowed clients can read STUCKS cloud state"
+  on public.stucks_cloud_state;
+drop policy if exists "Allowed clients can insert STUCKS cloud state"
+  on public.stucks_cloud_state;
+drop policy if exists "Allowed clients can update STUCKS cloud state"
+  on public.stucks_cloud_state;
 
 drop policy if exists "Allowed users can read STUCKS cloud state"
   on public.stucks_cloud_state;
@@ -26,52 +34,28 @@ drop policy if exists "Allowed users can insert STUCKS cloud state"
 drop policy if exists "Allowed users can update STUCKS cloud state"
   on public.stucks_cloud_state;
 
-create policy "Allowed users can read STUCKS cloud state"
+create policy "Allowed clients can read STUCKS cloud state"
 on public.stucks_cloud_state
 for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.dashboard_allowed_users allowed
-    where lower(allowed.email) = lower((select auth.jwt() ->> 'email'))
-  )
-);
+to anon, authenticated
+using (true);
 
-create policy "Allowed users can insert STUCKS cloud state"
+create policy "Allowed clients can insert STUCKS cloud state"
 on public.stucks_cloud_state
 for insert
-to authenticated
-with check (
-  updated_by = (select auth.uid())
-  and exists (
-    select 1
-    from public.dashboard_allowed_users allowed
-    where lower(allowed.email) = lower((select auth.jwt() ->> 'email'))
-  )
-);
+to anon, authenticated
+with check (true);
 
-create policy "Allowed users can update STUCKS cloud state"
+create policy "Allowed clients can update STUCKS cloud state"
 on public.stucks_cloud_state
 for update
-to authenticated
-using (
-  exists (
-    select 1
-    from public.dashboard_allowed_users allowed
-    where lower(allowed.email) = lower((select auth.jwt() ->> 'email'))
-  )
-)
-with check (
-  updated_by = (select auth.uid())
-  and exists (
-    select 1
-    from public.dashboard_allowed_users allowed
-    where lower(allowed.email) = lower((select auth.jwt() ->> 'email'))
-  )
-);
+to anon, authenticated
+using (true)
+with check (true);
 
 comment on table public.stucks_cloud_state is
   'Snapshot mais recente da base STUCKS importada no dashboard. Usado para carregar a mesma base em outros computadores.';
+
+notify pgrst, 'reload schema';
 
 commit;
