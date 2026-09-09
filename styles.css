@@ -604,10 +604,19 @@ table td:last-child {
 }
 
 .days-summary {
+  display: grid;
+  gap: 6px;
+  align-items: start;
+  width: 100%;
+  max-width: 100%;
+}
+
+.days-summary-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  max-width: 100%;
 }
 
 .days-chip {
@@ -1076,6 +1085,26 @@ table td .textarea {
 .status-days-table th:nth-child(2),
 .status-days-table td:nth-child(2) {
   text-align: center !important;
+}
+
+.status-days-table {
+  min-width: 0 !important;
+}
+
+.status-days-table th:nth-child(1),
+.status-days-table td:nth-child(1) {
+  width: 220px !important;
+}
+
+.status-days-table th:nth-child(2),
+.status-days-table td:nth-child(2) {
+  width: 120px !important;
+}
+
+.status-days-table th:nth-child(3),
+.status-days-table td:nth-child(3) {
+  width: auto !important;
+  min-width: 0 !important;
 }
 
 /* Centralizacao visual das colunas: cabecalho e conteudo no mesmo eixo */

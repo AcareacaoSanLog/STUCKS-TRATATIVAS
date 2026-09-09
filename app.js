@@ -258,7 +258,6 @@ function renderDashboard(){
   ['received','📥 HUB_RECEIVED',countStatus(rows,'received'),pct(countStatus(rows,'received'),total)+' do total filtrado','received'],
   ['assigned','📌 HUB_ASSIGNED',countStatus(rows,'assigned'),pct(countStatus(rows,'assigned'),total)+' do total filtrado','assigned'],
   ['soclh','🚚 SOC_LHTRANSPORTED',countStatus(rows,'soclh'),pct(countStatus(rows,'soclh'),total)+' do total filtrado','soclh'],
-  ['onroad','🛣️ ON ROAD',countStatus(rows,'onroad'),pct(countStatus(rows,'onroad'),total)+' do total filtrado','onroad'],
   ['intercepting','⛔ INTERCEPTING',countStatus(rows,'intercepting'),pct(countStatus(rows,'intercepting'),total)+' do total filtrado','intercepting'],
   ['packed','📦 HUB_PACKED',countStatus(rows,'packed'),pct(countStatus(rows,'packed'),total)+' do total filtrado','packed'],
   ['returnsoc','↩️ RETURN_SOC_RECEIVED',countStatus(rows,'returnsoc'),pct(countStatus(rows,'returnsoc'),total)+' do total filtrado','returnsoc'],
@@ -339,7 +338,7 @@ function bindDashboardQuickFilters(){
  document.querySelectorAll('[data-qf]').forEach(btn=>btn.addEventListener('click',()=>{
   const q=btn.dataset.qf;
   if(q==='all') resetFilters();
-  if(['onhold','received','assigned','soclh','onroad','intercepting','packed','returnsoc','returnhub'].includes(q)){state.filters.status='all'; state.filters.statusGroup=q;}
+  if(['onhold','received','assigned','soclh','intercepting','packed','returnsoc','returnhub'].includes(q)){state.filters.status='all'; state.filters.statusGroup=q;}
   if(q==='critical') state.filters.ageing='4+';
   if(q==='no-driver') state.filters.driver='Sem driver';
   if(q==='avaria') state.filters.avaria='Sim';
@@ -395,7 +394,7 @@ function rememberMonitorMenuScroll(){const city=document.getElementById('mCityMe
 function restoreMonitorMenuScroll(){const city=document.getElementById('mCityMenu'), days=document.getElementById('mDaysMenu'); if(city)city.scrollTop=monitorMenuScroll.city||0; if(days)days.scrollTop=monitorMenuScroll.days||0;}
 function scheduleMonitorRender(){const input=document.getElementById('mSearch'), pos=input&&typeof input.selectionStart==='number'?input.selectionStart:null; clearTimeout(monitorTimer); monitorTimer=setTimeout(()=>{renderMonitor(); restoreInputFocus('mSearch',pos);},180);}
 function normalizeMonitorFilters(rows){const validCities=monitorCityValues().filter(city=>rows.some(r=>r.city===city)); state.monitor.city=validCities.length?validCities:'all'; const cityRows=rows.filter(matchesMonitorCity); if(state.monitor.bairro!=='all'&&!cityRows.some(r=>r.bairro===state.monitor.bairro))state.monitor.bairro='all'; const bairroRows=cityRows.filter(r=>state.monitor.bairro==='all'||r.bairro===state.monitor.bairro); const selected=monitorDayValues().filter(day=>bairroRows.some(r=>(r.ageing_num==null?'Sem dias':String(r.ageing_num))===day)); state.monitor.days=selected.length?selected:'all';}
-function monitorLabel(type){return ({received:'Received',assigned:'Assigned',soclh:'SOC LH',onroad:'On Road',onhold:'OnHold'}[type]||'Monitoramento');}
+function monitorLabel(type){return ({received:'Received',assigned:'Assigned',soclh:'SOC LH',onhold:'OnHold'}[type]||'Monitoramento');}
 function monitorVisibleRows(rows){return rows.filter(x=>monitorMatch(x,state.monitor.type)&&matchesMonitorCity(x)&&(state.monitor.bairro==='all'||x.bairro===state.monitor.bairro)&&matchesMonitorDay(x)&&(state.monitor.search===''||normSearch([x.shipment_id,x.tracking_status,x.city,x.bairro,x.driver,x.tratativa].join(' ')).includes(normSearch(state.monitor.search))));}
 function monitorGroups(rows){let r=monitorVisibleRows(rows); const m=new Map(); r.forEach(x=>{const key=[x.city,x.bairro,x.ageing_num,displayTreatment(x),x.tracking_status].join('|'); if(!m.has(key))m.set(key,{city:x.city,bairro:x.bairro,days:x.ageing_num,status:x.tracking_status,treatment:displayTreatment(x),rows:[]}); m.get(key).rows.push(x);}); let g=[...m.values()]; g.forEach(x=>x.daysText=x.days==null?'Sem dias':x.days+' dias'); g.sort((a,b)=>{const da=a.days==null?Number.POSITIVE_INFINITY:Number(a.days), db=b.days==null?Number.POSITIVE_INFINITY:Number(b.days); const byDays=state.monitor.sort==='desc'?db-da:da-db; return byDays || b.rows.length-a.rows.length || String(a.city).localeCompare(String(b.city),'pt-BR') || String(a.bairro).localeCompare(String(b.bairro),'pt-BR');}); return g;}
 function openGroup(key){const g=window.__groups&&window.__groups[key]; if(!g)return setStatus('Grupo não encontrado. Atualize a tela e tente novamente.','error'); window.__modalRows=g.rows.map(r=>({...r})); renderModal(g);}
@@ -430,18 +429,11 @@ function renderStatus(){
  const rows = [...grouped.entries()].sort((a,b)=>b[1].total-a[1].total || String(a[0]).localeCompare(String(b[0]),'pt-BR'));
 
  const body = rows.length ? rows.map(([status,data]) => {
-  const days = [...data.days.entries()].sort((a,b)=>{
-   if(a[0]==='Sem dias') return 1;
-   if(b[0]==='Sem dias') return -1;
-   return Number(b[0])-Number(a[0]);
-  }).map(([day,count]) => {
-   const label = day === 'Sem dias' ? 'sem dias informado' : (Number(day) === 1 ? '1 dia' : day + ' dias');
-   return `<span class="days-chip"><b>${count}</b> BR${count===1?'':'s'} com ${esc(label)}</span>`;
-  }).join('');
+  const days = statusDaysSummaryHtml(data.days);
   return `<tr>
    <td><strong>${esc(status)}</strong></td>
    <td><strong>${data.total}</strong></td>
-   <td><div class="days-summary">${days || '<span class="days-chip">Sem dias informado</span>'}</div></td>
+   <td>${days}</td>
   </tr>`;
  }).join('') : '<tr><td colspan="3">Nenhum status encontrado.</td></tr>';
 
@@ -453,8 +445,23 @@ function renderStatus(){
     <thead><tr><th>Status</th><th>Qtd total</th><th>Quantidade por dias parados</th></tr></thead>
     <tbody>${body}</tbody>
    </table>
-  </div>
+ </div>
  </div>`;
+}
+
+function statusDaysSummaryHtml(daysMap){
+ const chips = [...daysMap.entries()].sort((a,b)=>{
+  if(a[0]==='Sem dias') return 1;
+  if(b[0]==='Sem dias') return -1;
+  return Number(b[0])-Number(a[0]);
+ }).map(([day,count]) => {
+  const label = day === 'Sem dias' ? 'sem dias informado' : (Number(day) === 1 ? '1 dia' : day + ' dias');
+  return `<span class="days-chip"><b>${count}</b> BR${count===1?'':'s'} com ${esc(label)}</span>`;
+ });
+ if(!chips.length)return '<div class="days-summary"><div class="days-summary-row"><span class="days-chip">Sem dias informado</span></div></div>';
+ const rows=[];
+ for(let i=0;i<chips.length;i+=15) rows.push(`<div class="days-summary-row">${chips.slice(i,i+15).join('')}</div>`);
+ return `<div class="days-summary">${rows.join('')}</div>`;
 }
 
 function renderRanking(field,title){el.title.textContent=title; const rows=groupCount(state.rows,field); el.content.innerHTML=`<div class="panel"><h3>${esc(title)}</h3><div class="table-wrap">${simpleTable(rows,[title,'Qtd'])}</div></div>`;}
@@ -518,8 +525,8 @@ function storageSet(key,value){try{localStorage.setItem(key,value); return true;
 function table(rows,fields,fmt={}){return `<table class="data-table"><thead><tr>${fields.map(f=>`<th>${label(f)}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(r=>`<tr>${fields.map(f=>`<td>${fmt[f]?fmt[f](r):esc(r[f]??'-')}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${fields.length}">Nenhum dado.</td></tr>`}</tbody></table>`;}
 function simpleTable(rows,heads){return `<table class="simple-table"><thead><tr>${heads.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${heads.length}">Nenhum dado.</td></tr>`}</tbody></table>`;}
 function groupCount(rows,field){const m=new Map(); rows.forEach(r=>{const k=clean(r[field])||'Sem informação'; m.set(k,(m.get(k)||0)+1);}); return [...m.entries()].sort((a,b)=>b[1]-a[1]);}
-function monitorMatch(r,t){const k=statusKey(r.tracking_status); return t==='received'?k==='received':t==='assigned'?k==='assigned':t==='soclh'?k==='soclh':t==='onroad'?k==='onroad':t==='onhold'?k==='onhold':true;}
-function statusKey(s){const n=normSearch(s); if(n.includes('avaria'))return 'avaria'; if(n.includes('onhold')||n.includes('on hold'))return 'onhold'; if(n.includes('return')&&n.includes('soc'))return 'returnsoc'; if(n.includes('return')&&n.includes('hub'))return 'returnhub'; if(n.includes('intercept'))return 'intercepting'; if(n.includes('packed'))return 'packed'; if(n.includes('assigned'))return 'assigned'; if(n.includes('onroad')||n.includes('on road')||n.includes('lmtransport')||n.includes('lm transport')||n.includes('out for delivery')||n.includes('driver delivering'))return 'onroad'; if(n.includes('soc')||n.includes('lhtransport'))return 'soclh'; if(n.includes('received')||n.includes('receveid'))return 'received'; return n||'outros';}
+function monitorMatch(r,t){const k=statusKey(r.tracking_status); return t==='received'?k==='received':t==='assigned'?k==='assigned':t==='soclh'?k==='soclh':t==='onhold'?k==='onhold':true;}
+function statusKey(s){const n=normSearch(s); if(n.includes('avaria'))return 'avaria'; if(n.includes('onhold')||n.includes('on hold'))return 'onhold'; if(n.includes('return')&&n.includes('soc'))return 'returnsoc'; if(n.includes('return')&&n.includes('hub'))return 'returnhub'; if(n.includes('intercept'))return 'intercepting'; if(n.includes('packed'))return 'packed'; if(n.includes('assigned'))return 'assigned'; if(n.includes('soc')||n.includes('lhtransport'))return 'soclh'; if(n.includes('received')||n.includes('receveid'))return 'received'; return n||'outros';}
 function priority(r){if(r.avaria==='Sim'||r.ageing_num>=10)return 'Crítica'; if(r.ageing_num>=7||r.driver==='Sem driver')return 'Alta'; if(r.ageing_num>=4)return 'Média'; return 'Baixa';}
 function normalizeTrace(v){return clean(v).replace(/\s+/g,'').toUpperCase();} function normalizeCep(v){return clean(v).replace(/\D/g,'').slice(0,8);} function clean(v){const s=String(v??'').trim(); return /^(null|undefined|nan)$/i.test(s)?'':s;}
 function normHeader(v){return clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
