@@ -460,7 +460,7 @@ function statusDaysSummaryHtml(daysMap){
  });
  if(!chips.length)return '<div class="days-summary"><div class="days-summary-row"><span class="days-chip">Sem dias informado</span></div></div>';
  const rows=[];
- for(let i=0;i<chips.length;i+=15) rows.push(`<div class="days-summary-row">${chips.slice(i,i+15).join('')}</div>`);
+ for(let i=0;i<chips.length;i+=10) rows.push(`<div class="days-summary-row">${chips.slice(i,i+10).join('')}</div>`);
  return `<div class="days-summary">${rows.join('')}</div>`;
 }
 
